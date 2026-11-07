@@ -6,9 +6,10 @@ import type {DimensionGroups,DimensionNames} from './pivotDimensions';
 import './pivotReport.css';
 
 export type Layout={rows:string[];columns:string[];filters:Record<string,unknown[]>};
-export type ReportView=Layout&{id:string;label:string;description:string};
+export type ReportView=Layout&{id:string;label:string;description:string;attributes?:Record<string,{block:string;key:string}>};
 export type ReportData={cells:PivotCell[];column_totals?:PivotCell[];grand_total?:PivotCell;truncated:boolean;
- pagination:{page:number;page_size:number;total_rows:number};layoutRows:string[];layoutColumns:string[];appliedFilters:Record<string,unknown[]>};
+ pagination:{page:number;page_size:number;total_rows:number};layoutRows:string[];layoutColumns:string[];appliedFilters:Record<string,unknown[]>;
+ collapse_unchanged?:boolean;unchanged_cells?:PivotCell[];unchanged_total?:PivotCell;row_totals?:PivotCell[];fieldLabels?:ReportView['attributes']};
 type Props={runId:string;totalApps:number;views:ReportView[];dimensions:string[];groups:DimensionGroups;names:DimensionNames;
  rows:string[];columns:string[];filters:Record<string,unknown[]>;filterDim:string;filterValue:string;
  data:ReportData|null;elapsed:number;busy:boolean;
@@ -50,6 +51,7 @@ export function PivotReport(p:Props){
   </section>
   {p.data?<section className="panel report-result"><div className="report-result-heading"><div><h2>Сводный отчёт по прогону</h2><p>Значения — уникальные APP_ID в каждой ячейке. Нажмите число для перехода к заявкам.</p></div><div className="report-selection"><button disabled={!p.data.grand_total?.count} onClick={()=>p.data?.grand_total&&p.onCell(p.data.grand_total)}>{number(p.data.grand_total?.count||0)}<ArrowDownRight size={14}/></button><small>заявок в текущей выборке</small></div></div>
    <div className="report-legend"><span><i className="legend-stable"/> Без изменений · DIFF_FLAG = 0</span><span><i className="legend-changed"/> Есть изменения · DIFF_FLAG = 1</span><small>Различия считаются по исходным значениям, а не по бакету</small></div>
+   {p.data.collapse_unchanged&&<p className="compact-strategy-note">«Без изменений» объединяет оба среза без повторного счёта. AFTER — стало, BEFORE — было. Общий итог объединяет уникальные заявки; он может быть меньше суммы колонок. Строки продуктов — заявки хотя бы с одним таким продуктовым результатом, не число попыток.</p>}
    <ReportTable data={p.data} names={p.names} onSelect={p.onCell}/>
    {!p.data.cells.length&&<div className="empty">В выбранных фильтрах нет данных.</div>}
    {p.data.truncated&&<p className="notice">Показана только часть ячеек. Уточните фильтры.</p>}
@@ -64,6 +66,7 @@ function DimensionSelect({title,dimensions,groups,names,selected,canAdd,onChange
 }
 
 function ReportTable({data,names,onSelect}:{data:ReportData;names:DimensionNames;onSelect:(c:PivotCell)=>void}){
+ if(data.collapse_unchanged)return <CompactStrategyTable data={data} onSelect={onSelect}/>;
  const rows=data.layoutRows,columns=data.layoutColumns;
  const tuple=(c:PivotCell,dims:string[])=>dims.map(d=>c.dimensions[d]);
  const key=(c:PivotCell,dims:string[])=>stringify(tuple(c,dims));
@@ -85,4 +88,29 @@ function ReportTable({data,names,onSelect}:{data:ReportData;names:DimensionNames
  <tbody>{rowKeys.map((rk,i)=><tr key={rk} className={i===0||!samePrefix(rowValues[i],rowValues[i-1],Math.max(1,rows.length-1))?'attribute-start':''}>{rows.length?rowValues[i].map((v,depth)=>{if(depth<rows.length-1&&i>0&&samePrefix(rowValues[i],rowValues[i-1],depth+1))return null;return <td key={depth} rowSpan={depth<rows.length-1?spanAt(rowValues,i,depth):1} className={'report-dimension '+(depth===rows.length-1?'leaf-value':'')} title={v===''?'Пустое значение. Присутствие и тип поля доступны в деталях.':String(v)}>{shown(v)}</td>}):<td>Все атрибуты</td>}{colValues.map((values,j)=><td className={'numeric '+columnClass(values)} key={j}>{countButton(lookup.get(rk+'|'+stringify(values)))}</td>)}</tr>)}</tbody>
  {data.column_totals&&<tfoot><tr><th colSpan={Math.max(1,rows.length)} scope="row">Уникальных заявок хотя бы в одной строке<small>Не сумма значений атрибутов</small></th>{colValues.map((v,i)=><td key={i} className={'numeric '+columnClass(v)}>{countButton(totals.get(stringify(v)))}</td>)}</tr></tfoot>}
  </table></div>
+}
+
+function CompactStrategyTable({data,onSelect}:{data:ReportData;onSelect:(c:PivotCell)=>void}){
+ const fields=data.fieldLabels||{};
+ const order=Object.keys(fields);
+ const rowKey=(c:PivotCell)=>JSON.stringify(data.layoutRows.map(d=>c.dimensions[d]));
+ const totals=new Map((data.row_totals||[]).map(c=>[rowKey(c),c]));
+ const stable=new Map((data.unchanged_cells||[]).map(c=>[rowKey(c),c]));
+ const rows=Array.from(totals.entries()).sort(([,a],[,b])=>{
+  const pa=String(a.dimensions.PATH),pb=String(b.dimensions.PATH);
+  return order.indexOf(pa)-order.indexOf(pb)||pa.localeCompare(pb)||String(a.dimensions.VALUE_ADJUSTED).localeCompare(String(b.dimensions.VALUE_ADJUSTED));
+ });
+ const changed=new Map(data.cells.filter(c=>c.dimensions.DIFF_FLAG===1).map(c=>[rowKey(c)+'|'+c.dimensions.SOURCE,c]));
+ const column=(source:string)=>data.column_totals?.find(c=>c.dimensions.DIFF_FLAG===1&&c.dimensions.SOURCE===source);
+ function value(cell:PivotCell|undefined){return cell&&cell.count>0?<button onClick={()=>onSelect(cell)} title="Открыть уникальные заявки"><span>{number(cell.count)}</span><ArrowDownRight size={12} aria-hidden="true"/></button>:<span className="report-dash">—</span>}
+ return <div className="report-table-scroll table-wrap"><table className="pivot-table report-table compact-strategy-table"><thead><tr>
+  <th rowSpan={2} className="dimension-header">Показатель<small>CLASS / смысл атрибута</small></th><th rowSpan={2} className="dimension-header">Поле<small>KEY</small></th><th rowSpan={2} className="dimension-header">Значение / бакет<small>VALUE_ADJUSTED</small></th>
+  <th rowSpan={2} className="column-heading stable-column"><b>Без изменений</b><small>DIFF_FLAG = 0 · оба среза</small></th><th colSpan={2} className="column-heading changed-column"><b>Есть изменения</b><small>DIFF_FLAG = 1</small></th><th rowSpan={2} className="column-heading total-column"><b>Общий итог</b><small>Уникальные заявки</small></th>
+ </tr><tr><th className="column-heading changed-column"><b>BEFORE (MASTER)</b><small>Было</small></th><th className="column-heading changed-column"><b>AFTER (BETA)</b><small>Стало</small></th></tr></thead><tbody>
+ {rows.map(([key,total],index)=>{
+  const path=String(total.dimensions.PATH),first=index===0||rows[index-1][1].dimensions.PATH!==path;
+  const span=rows.filter(([,cell])=>cell.dimensions.PATH===path).length;
+  return <tr key={key} className={first?'attribute-start':''}>{first&&<><td rowSpan={span} className="report-dimension compact-metric" title={path}><b>{fields[path]?.block||path}</b></td><td rowSpan={span} className="report-dimension" title={path}>{fields[path]?.key||path.split('.').at(-1)}</td></>}
+   <td className="report-dimension leaf-value">{shown(total.dimensions.VALUE_ADJUSTED)}</td><td className="numeric stable-column">{value(stable.get(key))}</td><td className="numeric changed-column">{value(changed.get(key+'|BEFORE'))}</td><td className="numeric changed-column">{value(changed.get(key+'|AFTER'))}</td><td className="numeric total-column">{value(total)}</td></tr>;
+ })}</tbody><tfoot><tr><th colSpan={3}>Уникальных заявок в выборке<small>Объединение APP_ID, не сумма строк или колонок</small></th><td className="numeric stable-column">{value(data.unchanged_total)}</td><td className="numeric changed-column">{value(column('BEFORE'))}</td><td className="numeric changed-column">{value(column('AFTER'))}</td><td className="numeric total-column">{value(data.grand_total)}</td></tr></tfoot></table></div>;
 }

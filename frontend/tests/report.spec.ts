@@ -14,14 +14,14 @@ test('assignment-style default report and exact cell drilldown',async({page,cont
  await login(page,context);
  await expect(page.getByRole('combobox',{name:'Представление сводной'})).toHaveValue('strategy');
  await expect(page.locator('.report-table thead tr')).toHaveCount(2);
- await expect(page.locator('.report-table thead th[colspan="2"]')).toHaveCount(2);
+ await expect(page.locator('.report-table thead th[colspan="2"]')).toHaveCount(1);
  await expect(page.locator('.report-table thead')).toContainText('DIFF_FLAG = 0');
  await expect(page.locator('.report-table thead')).toContainText('DIFF_FLAG = 1');
  const width=await page.locator('.report-table-scroll').evaluate(el=>({content:el.scrollWidth,viewport:el.clientWidth}));
  expect(width.content).toBeLessThanOrEqual(width.viewport+1);
  const first=page.locator('.report-table tbody tr').first();
  await expect(first).toContainText('APPROVE');
- await expect(first.locator('td.numeric button span')).toHaveText(['384','384','273','112']);
+ await expect(first.locator('td.numeric button span')).toHaveText(['384','273','112','769']);
  await first.getByRole('button',{name:'273',exact:true}).click();
  await expect(page.locator('.drawer h2')).toContainText('273');
  await page.locator('.app-list button').first().click();

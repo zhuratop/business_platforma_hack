@@ -1,5 +1,6 @@
 """Presentation baselines; stored paired differences and intervals stay immutable."""
 from scripts.default_spr.stat_labels import named_families
+from scripts.default_spr.bureau_scores import approved_bureau_scores
 
 
 def binary_baseline(stat):
@@ -9,6 +10,7 @@ def binary_baseline(stat):
 
 def display_stats(con, stats):
     result = named_families(con, stats)
+    result['bureau_scores'] = approved_bureau_scores(con, stats)
     result['app_approval_rate'] = {**stats['app_approval_rate'], 'baseline': binary_baseline(stats['app_approval_rate'])}
     # Average matched products within APP_ID first, so each application has equal weight.
     before, after = con.execute("""SELECT avg(b),avg(a) FROM (

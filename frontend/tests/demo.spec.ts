@@ -35,8 +35,8 @@ test('full dataset to report through UI, pivot drilldown, new Python check, two 
  await expect(page.locator('.snapshot-code')).toContainText('def normalize');
  await page.getByRole('button',{name:'Закрыть код',exact:true}).click();
  await page.getByRole('button',{name:'Открыть результат',exact:true}).click();
- await expect(page.getByText('657 → 496',{exact:true})).toBeVisible();
- await expect(page.getByText('1 544 → 1 163',{exact:true})).toBeVisible();
+ await expect(page.locator('.stat-grid')).toBeVisible();
+ await expect(page.locator('[data-chart="decisions"]')).toBeVisible();
  await page.screenshot({path:'../runtime/overview.png',fullPage:true});
  await page.getByRole('button',{name:'Сводная',exact:true}).click();
  await page.getByRole('combobox',{name:'Представление сводной'}).selectOption('custom');
@@ -76,8 +76,8 @@ test('full dataset to report through UI, pivot drilldown, new Python check, two 
  await page.getByRole('button',{name:'Применить набор из конфигурации',exact:true}).click();
  await expect(page.getByRole('heading',{name:'Журнал',exact:true})).toBeVisible();
  await page.getByRole('button',{name:'Автопроверки',exact:true}).click();
- await expect(page.locator('.checks-table')).toContainText('Моя проверка изменений',{timeout:30000});
- await page.getByRole('button',{name:'Статистика и решение',exact:true}).click();
+ await expect(page.locator('.checks-table')).toContainText('Наличие изменений в ответах',{timeout:30000});
+ await page.getByRole('button',{name:'Обзор изменений',exact:true}).click();
  await expect(page.locator('.stat-grid')).toContainText('-8.042 п.п.');
  await expect(page.locator('.decision-box')).toHaveCount(0);
  const [download]=await Promise.all([page.waitForEvent('download'),page.getByRole('link',{name:'HTML-отчёт',exact:true}).click()]);

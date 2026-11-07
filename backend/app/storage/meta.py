@@ -74,6 +74,35 @@ def listing(table,owner,limit=100,offset=0):
     with db() as c:
         return [json.loads(r[0]) for r in c.execute(f'SELECT payload FROM {table} WHERE owner_id=? ORDER BY created DESC LIMIT ? OFFSET ?',(owner,limit,offset))]
 
+def dataset_listing(owner,limit=100,offset=0):
+    """One visible snapshot per checksum, before pagination; older IDs stay readable."""
+    with db() as c:
+        rows = c.execute('''WITH ranked AS (
+            SELECT payload,created,id,row_number() OVER (
+                PARTITION BY coalesce(nullif(json_extract(payload,'$.checksum'),''),id)
+                ORDER BY created DESC,id DESC) AS position
+            FROM datasets WHERE owner_id=?)
+            SELECT payload FROM ranked WHERE position=1
+            ORDER BY created DESC,id DESC LIMIT ? OFFSET ?''',(owner,limit,offset))
+        return [json.loads(r[0]) for r in rows]
+
+
+def register_dataset(owner,payload,id):
+    """Atomically reuse an identical dataset, including simultaneous imports."""
+    with db() as c:
+        c.execute('BEGIN IMMEDIATE')
+        previous = c.execute('''SELECT payload FROM datasets
+            WHERE owner_id=? AND json_extract(payload,'$.checksum')=?
+            ORDER BY created DESC,id DESC LIMIT 1''',(owner,payload['checksum'])).fetchone()
+        if previous:
+            return json.loads(previous[0])
+        created = now()
+        dataset = {**payload,'id':id,'owner_id':owner,'status':'VALIDATED','created':created}
+        c.execute('INSERT INTO datasets VALUES(?,?,?,?,?)',
+                  (id,owner,'VALIDATED',json.dumps(dataset,ensure_ascii=False),created))
+        return dataset
+
+
 def update(table,id,**fields):
     assert table in TABLES
     with db() as c:

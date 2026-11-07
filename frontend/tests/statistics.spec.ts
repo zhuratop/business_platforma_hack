@@ -12,7 +12,8 @@ test('statistics use names, readable percentages and compact p-values',async({pa
  payload.data.families={products:[row],partners:[{...row,group:'456',group_name:'Партнёр для проверки'}]};
  await page.route('**/api/runs/'+run+'/stats',r=>r.fulfill({json:payload}));
  await page.goto('/?run='+run+'&tab=stats');
- await expect(page.locator('.stats-family-table')).toHaveCount(2);
+ await expect(page.locator('.stats-family-table')).toHaveCount(1);
+ await expect(page.locator('.stats-family-table thead')).toContainText('Продукт (компания)');
  await expect(page.locator('.statistics-page')).not.toContainText('Медиана дельт');
  await expect(page.locator('.statistics-page')).not.toContainText('Оценка готовности стратегии');
  await expect(page.locator('.statistics-page')).not.toContainText('Целевая модель не менялась');
@@ -35,7 +36,7 @@ test('statistics use names, readable percentages and compact p-values',async({pa
  await expect(page.locator('.stats-family-table').first().locator('thead')).toContainText('CI 95%, п.п.');
  await expect(first.locator('td').nth(6)).toHaveText('0.1235');
  await expect(first.locator('td').nth(7)).toHaveText('1.254e-16');
- await expect(page.locator('.stats-family-table').nth(1)).toContainText('Партнёр для проверки');
+ await expect(page.locator('.statistics-page')).not.toContainText('Партнёр для проверки');
  await expect(page.locator('.stat-grid .stat').nth(1).locator('.stat-unit')).toContainText('продукта / заявку');
  await expect(page.locator('.stat-grid .stat').nth(1).locator('b').first()).not.toContainText('%');
 });

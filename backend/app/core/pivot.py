@@ -114,6 +114,31 @@ def cells(con,run_id,request):
             cell_token=token(run_id,{**request.filters,**{d:[r[d]] for d in request.columns}})) for r in totals]
         total = con.execute(prefix+'SELECT count(DISTINCT f.APP_ID) FROM scoped f'+clause,args).fetchone()[0]
         response['grand_total'] = dict(dimensions={},count=total,cell_token=token(run_id,request.filters))
+    if request.collapse_unchanged:
+        if request.columns != ['DIFF_FLAG','SOURCE'] or not request.include_totals:
+            raise ValueError('Collapsed comparison requires DIFF_FLAG/SOURCE columns and totals')
+        # Aggregate memberships again: summing cells would double-count APP_IDs
+        # shared by sources, products, or changed values inside the same bucket.
+        keys = list(dict.fromkeys(tuple(r[d] for d in request.rows) for r in rows))
+        page_args = []
+        if keys and request.rows:
+            page_filter = ' OR '.join('('+' AND '.join('f."'+d+'" IS NOT DISTINCT FROM ?' for d in request.rows)+')' for _ in keys)
+            page_args = [value for key in keys for value in key]
+            page_clause = (' AND ' if clause else ' WHERE ')+'('+page_filter+')'
+        else:
+            page_clause = '' if keys else (' AND FALSE' if clause else ' WHERE FALSE')
+        row_columns = ','.join('f."'+d+'"' for d in request.rows)
+        aggregates = records(con,prefix+'SELECT '+(row_columns+',' if row_columns else '')+
+            'count(DISTINCT f.APP_ID) AS total,count(DISTINCT f.APP_ID) FILTER(WHERE f.DIFF_FLAG=0) AS stable FROM scoped f'+clause+page_clause+
+            (' GROUP BY '+row_columns if row_columns else ''),args+page_args)
+        response.update(collapse_unchanged=True,row_totals=[],unchanged_cells=[])
+        for row in aggregates:
+            dims = {d:row[d] for d in request.rows}
+            filters = {**request.filters,**{d:[v] for d,v in dims.items()}}
+            response['row_totals'].append(dict(dimensions=dims,count=row['total'],cell_token=token(run_id,filters)))
+            response['unchanged_cells'].append(dict(dimensions=dims,count=row['stable'],cell_token=token(run_id,{**filters,'DIFF_FLAG':[0]})))
+        stable = con.execute(prefix+'SELECT count(DISTINCT f.APP_ID) FILTER(WHERE f.DIFF_FLAG=0) FROM scoped f'+clause,args).fetchone()[0]
+        response['unchanged_total'] = dict(dimensions={'DIFF_FLAG':0},count=stable,cell_token=token(run_id,{**request.filters,'DIFF_FLAG':[0]}))
     return response
 
 def apps(con,filters,page=1,page_size=50):

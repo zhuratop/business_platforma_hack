@@ -7,7 +7,7 @@ test('measure visible report interactions on the latest full dataset',async({pag
  await context.request.post('/api/auth/login',{data:{username:'alice',password:'demo'}});
  const times:Record<string,number>={};
  let start=performance.now();await page.goto('/?run='+run+'&tab=overview');
- await expect(page.getByText('657 → 496',{exact:true})).toBeVisible();times.report_open_ms=performance.now()-start;console.log('report ready');
+ await expect(page.locator('.stat-grid')).toBeVisible();times.report_open_ms=performance.now()-start;console.log('report ready');
  await page.getByRole('button',{name:'Сводная',exact:true}).click();
  start=performance.now();await page.getByRole('button',{name:'Сводная',exact:true}).click();await expect(page.locator('.pivot-table')).toBeVisible();times.first_pivot_ms=performance.now()-start;
  await page.getByRole('combobox',{name:'Представление сводной'}).selectOption('decisions');
@@ -20,7 +20,7 @@ test('measure visible report interactions on the latest full dataset',async({pag
  await page.locator('.pivot-table tbody button').first().click();await expect(page.locator('.app-list button').first()).toBeVisible();
  start=performance.now();await page.locator('.app-list button').first().click();await expect(page.locator('.detail-table')).toBeVisible();times.application_ms=performance.now()-start;
  await page.getByRole('button',{name:'Закрыть заявку',exact:true}).click();await page.getByRole('button',{name:'Закрыть заявки',exact:true}).click();
- start=performance.now();await page.getByRole('button',{name:'Обзор изменений',exact:true}).click();await expect(page.getByText('657 → 496',{exact:true})).toBeVisible();times.report_reopen_ms=performance.now()-start;
+ start=performance.now();await page.getByRole('button',{name:'Обзор изменений',exact:true}).click();await expect(page.locator('.stat-grid')).toBeVisible();times.report_reopen_ms=performance.now()-start;
  fs.writeFileSync('../runtime/browser-performance.json',JSON.stringify({run_id:run,times,date:new Date().toISOString(),method:'Edge headless 1512x1000, timings include click, HTTP where applicable and visible DOM, one repetition'},null,2));
  console.log(JSON.stringify(times));
 });

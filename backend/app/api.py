@@ -78,7 +78,8 @@ def current_scripts(owner):
             if path.suffix=='.py' and path.is_file() and any(path.is_relative_to(root) for root in [meta.ROOT/'scripts',meta.RUNTIME/'scripts',meta.DATA_ROOT/'checks']):
                 script['code'] = path.read_text(encoding='utf-8-sig')
         script['hash'] = hashlib.sha256(script['code'].encode()).hexdigest()
-    return scripts
+    from backend.app.core.script_names import named_scripts
+    return named_scripts(scripts)
 
 @app.post('/api/auth/login')
 def login(response:Response,body:dict=Body(...)):
@@ -109,12 +110,12 @@ def bootstrap(u=Depends(user)):
     from scripts.default_spr.pivot_views import VIEWS
     return ok(dict(user=u,data_root=str(meta.DATA_ROOT),default_dataset=str(meta.DATA_ROOT/'data'/'RUN-20260827-0001'),
                    dimensions=DIMENSIONS,dimension_groups=DIMENSION_GROUPS,dimension_labels=DIMENSION_LABELS,pivot_views=VIEWS,files=[str(p) for p in (meta.ROOT/'scripts').rglob('*.py') if p.parent.name in ['default_spr','checks']],
-                   datasets=meta.listing('datasets',u['id']),configs=meta.listing('configs',u['id']),scripts=current_scripts(u['id']),
+                   datasets=meta.dataset_listing(u['id']),configs=meta.listing('configs',u['id']),scripts=current_scripts(u['id']),
                    runs=[public_run(r) for r in meta.listing('runs',u['id'])]))
 
 @app.get('/api/datasets')
 def datasets(limit:int=100,offset:int=0,u=Depends(user)):
-    return ok(meta.listing('datasets',u['id'],min(max(limit,1),200),max(0,offset)))
+    return ok(meta.dataset_listing(u['id'],min(max(limit,1),200),max(0,offset)))
 
 @app.post('/api/datasets/register')
 def register(body:dict=Body(...),u=Depends(user)):
@@ -270,6 +271,14 @@ def run_stats(id:str,u=Depends(user)):
     with duckdb.connect(run['mart_path'],read_only=True) as con:
         stats=display_stats(con,run['stats'])
     return ok(stats,id)
+
+@app.get('/api/runs/{id}/stats/charts')
+def run_stat_charts(id:str,u=Depends(user)):
+    run=owned_run(id,u['id'],True)
+    from scripts.default_spr.stat_charts import chart_data
+    with duckdb.connect(run['mart_path'],read_only=True) as con:
+        data=chart_data(con)
+    return ok(data,id)
 
 @app.get('/api/runs/{id}/checks')
 def checks(id:str,u=Depends(user)):

@@ -59,8 +59,19 @@ def copy_dataset(owner,folder,name=None):
     target.mkdir(parents=True)
     # Validate, hash and snapshot exactly the same bytes in one pass. No rereads
     # of mutable source files, and no costly per-file metadata copying.
-    info = validate(folder,copy_to=target)
-    return meta.put('datasets',owner,{**info,'name':name or folder.name,'path':str(target)},'VALIDATED',id)
+    keep = False
+    try:
+        info = validate(folder,copy_to=target)
+        dataset = meta.register_dataset(owner,{**info,'name':name or folder.name,'path':str(target)},id)
+        keep = dataset['id'] == id
+        return dataset
+    finally:
+        if not keep:
+            # Only this import's new directory; published snapshots stay intact.
+            resolved = target.resolve()
+            if resolved.parent != (meta.RUNTIME/'uploads').resolve() or resolved.name != id:
+                raise ValueError('Unexpected import snapshot path')
+            shutil.rmtree(resolved)
 
 def unzip(owner,archive,name):
     staging = meta.RUNTIME/'uploads'/('staging-'+meta.uid())
