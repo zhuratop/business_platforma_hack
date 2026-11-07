@@ -1,0 +1,591 @@
+<!doctype html><html lang="ru"><meta charset="utf-8"><title>СПР · 72a89d51382d6a25e96c3998</title>
+    <style>body{font:15px system-ui;max-width:1200px;margin:40px auto;color:#173037;padding:20px}table{border-collapse:collapse;width:100%;font-size:12px}td,th{border:1px solid #ccd6d6;padding:8px;text-align:left;word-break:break-word}.fail{background:#ffe7df}.low{background:#faf2e7;color:#7a776f}pre{white-space:pre-wrap;background:#f1f6f5;padding:20px}a{color:#087d77}</style>
+    <h1>Система анализа изменений СПР</h1><p>Прогон 72a89d51382d6a25e96c3998 · 2026-11-06T22:28:13.618649+00:00</p>
+    <p><a href="http://127.0.0.1:8000/?run=72a89d51382d6a25e96c3998&amp;tab=pivot">Открыть интерактивную сводную</a> (нужен вход владельца)</p>
+    <h2>Обзор</h2><pre>{
+  &quot;total_apps&quot;: 2002,
+  &quot;changed_apps&quot;: 502,
+  &quot;changed_without_decision&quot;: 117,
+  &quot;decision_changed&quot;: 385,
+  &quot;attributes&quot;: 289533,
+  &quot;approvals&quot;: [
+    {
+      &quot;SOURCE&quot;: &quot;BEFORE&quot;,
+      &quot;approved&quot;: 657
+    },
+    {
+      &quot;SOURCE&quot;: &quot;AFTER&quot;,
+      &quot;approved&quot;: 496
+    }
+  ],
+  &quot;transitions&quot;: [
+    {
+      &quot;DECISION_BEFORE&quot;: &quot;APPROVE&quot;,
+      &quot;DECISION_AFTER&quot;: &quot;APPROVE&quot;,
+      &quot;CNT&quot;: 384
+    },
+    {
+      &quot;DECISION_BEFORE&quot;: &quot;APPROVE&quot;,
+      &quot;DECISION_AFTER&quot;: &quot;REJECT&quot;,
+      &quot;CNT&quot;: 273
+    },
+    {
+      &quot;DECISION_BEFORE&quot;: &quot;REJECT&quot;,
+      &quot;DECISION_AFTER&quot;: &quot;APPROVE&quot;,
+      &quot;CNT&quot;: 112
+    },
+    {
+      &quot;DECISION_BEFORE&quot;: &quot;REJECT&quot;,
+      &quot;DECISION_AFTER&quot;: &quot;REJECT&quot;,
+      &quot;CNT&quot;: 1233
+    }
+  ],
+  &quot;products&quot;: [
+    {
+      &quot;SOURCE&quot;: &quot;AFTER&quot;,
+      &quot;product_id&quot;: &quot;12412&quot;,
+      &quot;partner_id&quot;: &quot;1777&quot;,
+      &quot;attempts&quot;: 947,
+      &quot;approved&quot;: 239
+    },
+    {
+      &quot;SOURCE&quot;: &quot;AFTER&quot;,
+      &quot;product_id&quot;: &quot;15210&quot;,
+      &quot;partner_id&quot;: &quot;1450&quot;,
+      &quot;attempts&quot;: 927,
+      &quot;approved&quot;: 238
+    },
+    {
+      &quot;SOURCE&quot;: &quot;AFTER&quot;,
+      &quot;product_id&quot;: &quot;5123&quot;,
+      &quot;partner_id&quot;: &quot;1233&quot;,
+      &quot;attempts&quot;: 945,
+      &quot;approved&quot;: 234
+    },
+    {
+      &quot;SOURCE&quot;: &quot;AFTER&quot;,
+      &quot;product_id&quot;: &quot;751&quot;,
+      &quot;partner_id&quot;: &quot;1901&quot;,
+      &quot;attempts&quot;: 925,
+      &quot;approved&quot;: 226
+    },
+    {
+      &quot;SOURCE&quot;: &quot;AFTER&quot;,
+      &quot;product_id&quot;: &quot;91741&quot;,
+      &quot;partner_id&quot;: &quot;1602&quot;,
+      &quot;attempts&quot;: 944,
+      &quot;approved&quot;: 226
+    },
+    {
+      &quot;SOURCE&quot;: &quot;BEFORE&quot;,
+      &quot;product_id&quot;: &quot;12412&quot;,
+      &quot;partner_id&quot;: &quot;1777&quot;,
+      &quot;attempts&quot;: 947,
+      &quot;approved&quot;: 319
+    },
+    {
+      &quot;SOURCE&quot;: &quot;BEFORE&quot;,
+      &quot;product_id&quot;: &quot;15210&quot;,
+      &quot;partner_id&quot;: &quot;1450&quot;,
+      &quot;attempts&quot;: 927,
+      &quot;approved&quot;: 311
+    },
+    {
+      &quot;SOURCE&quot;: &quot;BEFORE&quot;,
+      &quot;product_id&quot;: &quot;5123&quot;,
+      &quot;partner_id&quot;: &quot;1233&quot;,
+      &quot;attempts&quot;: 945,
+      &quot;approved&quot;: 309
+    },
+    {
+      &quot;SOURCE&quot;: &quot;BEFORE&quot;,
+      &quot;product_id&quot;: &quot;751&quot;,
+      &quot;partner_id&quot;: &quot;1901&quot;,
+      &quot;attempts&quot;: 925,
+      &quot;approved&quot;: 303
+    },
+    {
+      &quot;SOURCE&quot;: &quot;BEFORE&quot;,
+      &quot;product_id&quot;: &quot;91741&quot;,
+      &quot;partner_id&quot;: &quot;1602&quot;,
+      &quot;attempts&quot;: 944,
+      &quot;approved&quot;: 302
+    }
+  ],
+  &quot;approved_products&quot;: [
+    {
+      &quot;SOURCE&quot;: &quot;AFTER&quot;,
+      &quot;approved&quot;: 1163,
+      &quot;attempts&quot;: 4688
+    },
+    {
+      &quot;SOURCE&quot;: &quot;BEFORE&quot;,
+      &quot;approved&quot;: 1544,
+      &quot;attempts&quot;: 4688
+    }
+  ],
+  &quot;offers&quot;: [
+    {
+      &quot;SOURCE&quot;: &quot;AFTER&quot;,
+      &quot;type&quot;: &quot;manual&quot;,
+      &quot;CNT&quot;: 10,
+      &quot;unique_products&quot;: 5
+    },
+    {
+      &quot;SOURCE&quot;: &quot;AFTER&quot;,
+      &quot;type&quot;: &quot;standard&quot;,
+      &quot;CNT&quot;: 1163,
+      &quot;unique_products&quot;: 5
+    },
+    {
+      &quot;SOURCE&quot;: &quot;BEFORE&quot;,
+      &quot;type&quot;: &quot;manual&quot;,
+      &quot;CNT&quot;: 15,
+      &quot;unique_products&quot;: 5
+    },
+    {
+      &quot;SOURCE&quot;: &quot;BEFORE&quot;,
+      &quot;type&quot;: &quot;standard&quot;,
+      &quot;CNT&quot;: 1544,
+      &quot;unique_products&quot;: 5
+    }
+  ],
+  &quot;top_offer_changed&quot;: 385,
+  &quot;external_score_changed&quot;: 167,
+  &quot;model_changed&quot;: 167,
+  &quot;availability&quot;: {
+    &quot;pd_default&quot;: {
+      &quot;status&quot;: &quot;unavailable&quot;,
+      &quot;reason&quot;: &quot;Нужны pd_default, pd_horizon, pd_model_version, pd_calibrated&quot;
+    },
+    &quot;limits&quot;: {
+      &quot;status&quot;: &quot;unavailable&quot;,
+      &quot;reason&quot;: &quot;Нужны offered_limit, currency&quot;
+    },
+    &quot;money&quot;: {
+      &quot;status&quot;: &quot;unavailable&quot;,
+      &quot;reason&quot;: &quot;Нужны PD_default, EAD, LGD, take_up_probability, денежные потоки и затраты&quot;
+    }
+  },
+  &quot;top_changes&quot;: [
+    {
+      &quot;PATH&quot;: &quot;decisionResult.available_offers.product_id&quot;,
+      &quot;CNT&quot;: 385
+    },
+    {
+      &quot;PATH&quot;: &quot;decisionResult.available_offers.product_name&quot;,
+      &quot;CNT&quot;: 385
+    },
+    {
+      &quot;PATH&quot;: &quot;decisionResult.available_offers.rank&quot;,
+      &quot;CNT&quot;: 385
+    },
+    {
+      &quot;PATH&quot;: &quot;decisionResult.available_offers.type&quot;,
+      &quot;CNT&quot;: 385
+    },
+    {
+      &quot;PATH&quot;: &quot;decisionResult.decision&quot;,
+      &quot;CNT&quot;: 385
+    },
+    {
+      &quot;PATH&quot;: &quot;decisionResult.product_trials.decision&quot;,
+      &quot;CNT&quot;: 385
+    },
+    {
+      &quot;PATH&quot;: &quot;decisionResult.product_trials.rejectReason&quot;,
+      &quot;CNT&quot;: 385
+    },
+    {
+      &quot;PATH&quot;: &quot;decisionResult.product_trials.rejectReasonCode&quot;,
+      &quot;CNT&quot;: 385
+    },
+    {
+      &quot;PATH&quot;: &quot;decisionResult.product_trials.cutOff.name&quot;,
+      &quot;CNT&quot;: 334
+    },
+    {
+      &quot;PATH&quot;: &quot;decisionResult.product_trials.cutOff.value&quot;,
+      &quot;CNT&quot;: 334
+    },
+    {
+      &quot;PATH&quot;: &quot;decisionResult.product_trials.scoring.pd.value&quot;,
+      &quot;CNT&quot;: 334
+    },
+    {
+      &quot;PATH&quot;: &quot;decisionResult.product_trials.scoring.scoreModels.value&quot;,
+      &quot;CNT&quot;: 334
+    },
+    {
+      &quot;PATH&quot;: &quot;decisionResult.scoring.value&quot;,
+      &quot;CNT&quot;: 334
+    },
+    {
+      &quot;PATH&quot;: &quot;decisionResult.product_trials.rules.hit&quot;,
+      &quot;CNT&quot;: 168
+    },
+    {
+      &quot;PATH&quot;: &quot;characteristics.score_okb&quot;,
+      &quot;CNT&quot;: 167
+    }
+  ],
+  &quot;decision&quot;: {
+    &quot;status&quot;: &quot;investigate&quot;,
+    &quot;preferred_strategy&quot;: &quot;undetermined&quot;,
+    &quot;working_action&quot;: &quot;Пока оставить BEFORE; проверить пороги, сигналы и недостающие данные&quot;,
+    &quot;conditions&quot;: [
+      {
+        &quot;metric_id&quot;: &quot;app_approval_rate&quot;,
+        &quot;status&quot;: &quot;unknown&quot;,
+        &quot;threshold&quot;: null,
+        &quot;ci&quot;: [
+          -0.0984140859140859,
+          -0.06143856143856144
+        ]
+      },
+      {
+        &quot;metric_id&quot;: &quot;approved_products&quot;,
+        &quot;status&quot;: &quot;unknown&quot;,
+        &quot;threshold&quot;: null,
+        &quot;ci&quot;: [
+          -0.23476523476523475,
+          -0.14634115884115903
+        ]
+      },
+      {
+        &quot;metric_id&quot;: &quot;mandatory_checks&quot;,
+        &quot;status&quot;: &quot;uncertain&quot;
+      },
+      {
+        &quot;metric_id&quot;: &quot;pd_default&quot;,
+        &quot;status&quot;: &quot;unknown&quot;
+      },
+      {
+        &quot;metric_id&quot;: &quot;offered_limit&quot;,
+        &quot;status&quot;: &quot;unknown&quot;
+      }
+    ]
+  },
+  &quot;timings&quot;: {
+    &quot;startup&quot;: 0.0708,
+    &quot;NORMALIZING&quot;: 48.5913,
+    &quot;COMPARING&quot;: 16.9541,
+    &quot;FACTS&quot;: 22.7016,
+    &quot;CHECKS&quot;: 0.6084,
+    &quot;STATS&quot;: 1.8222,
+    &quot;REPORTING&quot;: 0.0215
+  },
+  &quot;processing_seconds&quot;: 90.7698
+}</pre>
+    <h2>Единый отчёт проверок</h2><table><thead><tr><th>LABEL</th><th>SOURCE</th><th>ARGUMENT</th><th>CNT</th><th>TOTAL</th><th>METRIC</th><th>RESULT</th><th>CONFIDENCE</th><th>APP_IDS</th></tr></thead><tbody><tr class="fail"><td>Approval Rate по продукту упал</td><td>AFTER</td><td>12412</td><td>130</td><td>947</td><td>0.2508</td><td>FAIL</td><td>HIGH</td><td>[&#x27;I32554374&#x27;, &#x27;I32554378&#x27;, &#x27;I32554406&#x27;, &#x27;I32554414&#x27;, &#x27;I32554466&#x27;, &#x27;I32554470&#x27;, &#x27;I32554482&#x27;, &#x27;I32554538&#x27;, &#x27;I32554542&#x27;, &#x27;I32554578&#x27;, &#x27;I32554630&#x27;, &#x27;I32554686&#x27;, &#x27;I32554698&#x27;, &#x27;I32554730&#x27;, &#x27;I32554770&#x27;, &#x27;I32554802&#x27;, &#x27;I32554806&#x27;, &#x27;I32554810&#x27;, &#x27;I32554830&#x27;, &#x27;I32554866&#x27;]</td></tr><tr class="fail"><td>Approval Rate по продукту упал</td><td>AFTER</td><td>15210</td><td>125</td><td>927</td><td>0.2347</td><td>FAIL</td><td>HIGH</td><td>[&#x27;I32554374&#x27;, &#x27;I32554378&#x27;, &#x27;I32554394&#x27;, &#x27;I32554410&#x27;, &#x27;I32554430&#x27;, &#x27;I32554466&#x27;, &#x27;I32554482&#x27;, &#x27;I32554522&#x27;, &#x27;I32554542&#x27;, &#x27;I32554578&#x27;, &#x27;I32554590&#x27;, &#x27;I32554594&#x27;, &#x27;I32554626&#x27;, &#x27;I32554630&#x27;, &#x27;I32554650&#x27;, &#x27;I32554662&#x27;, &#x27;I32554686&#x27;, &#x27;I32554722&#x27;, &#x27;I32554730&#x27;, &#x27;I32554734&#x27;]</td></tr><tr class="fail"><td>Approval Rate по продукту упал</td><td>AFTER</td><td>5123</td><td>128</td><td>945</td><td>0.2427</td><td>FAIL</td><td>HIGH</td><td>[&#x27;I32554406&#x27;, &#x27;I32554410&#x27;, &#x27;I32554434&#x27;, &#x27;I32554442&#x27;, &#x27;I32554446&#x27;, &#x27;I32554470&#x27;, &#x27;I32554486&#x27;, &#x27;I32554506&#x27;, &#x27;I32554518&#x27;, &#x27;I32554538&#x27;, &#x27;I32554554&#x27;, &#x27;I32554650&#x27;, &#x27;I32554662&#x27;, &#x27;I32554698&#x27;, &#x27;I32554702&#x27;, &#x27;I32554790&#x27;, &#x27;I32554794&#x27;, &#x27;I32554806&#x27;, &#x27;I32554826&#x27;, &#x27;I32554842&#x27;]</td></tr><tr class="fail"><td>Approval Rate по продукту упал</td><td>AFTER</td><td>751</td><td>131</td><td>925</td><td>0.2541</td><td>FAIL</td><td>HIGH</td><td>[&#x27;I32554362&#x27;, &#x27;I32554374&#x27;, &#x27;I32554394&#x27;, &#x27;I32554398&#x27;, &#x27;I32554406&#x27;, &#x27;I32554410&#x27;, &#x27;I32554430&#x27;, &#x27;I32554434&#x27;, &#x27;I32554442&#x27;, &#x27;I32554446&#x27;, &#x27;I32554466&#x27;, &#x27;I32554470&#x27;, &#x27;I32554486&#x27;, &#x27;I32554518&#x27;, &#x27;I32554522&#x27;, &#x27;I32554542&#x27;, &#x27;I32554554&#x27;, &#x27;I32554614&#x27;, &#x27;I32554626&#x27;, &#x27;I32554630&#x27;]</td></tr><tr class="fail"><td>Approval Rate по продукту упал</td><td>AFTER</td><td>91741</td><td>131</td><td>944</td><td>0.2517</td><td>FAIL</td><td>HIGH</td><td>[&#x27;I32554362&#x27;, &#x27;I32554394&#x27;, &#x27;I32554398&#x27;, &#x27;I32554414&#x27;, &#x27;I32554430&#x27;, &#x27;I32554434&#x27;, &#x27;I32554486&#x27;, &#x27;I32554506&#x27;, &#x27;I32554522&#x27;, &#x27;I32554554&#x27;, &#x27;I32554590&#x27;, &#x27;I32554594&#x27;, &#x27;I32554614&#x27;, &#x27;I32554662&#x27;, &#x27;I32554686&#x27;, &#x27;I32554722&#x27;, &#x27;I32554738&#x27;, &#x27;I32554758&#x27;, &#x27;I32554802&#x27;, &#x27;I32554826&#x27;]</td></tr><tr class="fail"><td>Изменился состав атрибутов</td><td>BEFORE</td><td>decisionResult.available_offers.product_id</td><td>273</td><td>2002</td><td>0.1364</td><td>FAIL</td><td>HIGH</td><td>[&#x27;I32554362&#x27;, &#x27;I32554374&#x27;, &#x27;I32554378&#x27;, &#x27;I32554394&#x27;, &#x27;I32554398&#x27;, &#x27;I32554406&#x27;, &#x27;I32554410&#x27;, &#x27;I32554414&#x27;, &#x27;I32554430&#x27;, &#x27;I32554434&#x27;, &#x27;I32554442&#x27;, &#x27;I32554446&#x27;, &#x27;I32554466&#x27;, &#x27;I32554470&#x27;, &#x27;I32554482&#x27;, &#x27;I32554486&#x27;, &#x27;I32554506&#x27;, &#x27;I32554518&#x27;, &#x27;I32554522&#x27;, &#x27;I32554538&#x27;]</td></tr><tr class="fail"><td>Изменился состав атрибутов</td><td>BEFORE</td><td>decisionResult.available_offers.product_name</td><td>273</td><td>2002</td><td>0.1364</td><td>FAIL</td><td>HIGH</td><td>[&#x27;I32554362&#x27;, &#x27;I32554374&#x27;, &#x27;I32554378&#x27;, &#x27;I32554394&#x27;, &#x27;I32554398&#x27;, &#x27;I32554406&#x27;, &#x27;I32554410&#x27;, &#x27;I32554414&#x27;, &#x27;I32554430&#x27;, &#x27;I32554434&#x27;, &#x27;I32554442&#x27;, &#x27;I32554446&#x27;, &#x27;I32554466&#x27;, &#x27;I32554470&#x27;, &#x27;I32554482&#x27;, &#x27;I32554486&#x27;, &#x27;I32554506&#x27;, &#x27;I32554518&#x27;, &#x27;I32554522&#x27;, &#x27;I32554538&#x27;]</td></tr><tr class="fail"><td>Изменился состав атрибутов</td><td>BEFORE</td><td>decisionResult.available_offers.rank</td><td>273</td><td>2002</td><td>0.1364</td><td>FAIL</td><td>HIGH</td><td>[&#x27;I32554362&#x27;, &#x27;I32554374&#x27;, &#x27;I32554378&#x27;, &#x27;I32554394&#x27;, &#x27;I32554398&#x27;, &#x27;I32554406&#x27;, &#x27;I32554410&#x27;, &#x27;I32554414&#x27;, &#x27;I32554430&#x27;, &#x27;I32554434&#x27;, &#x27;I32554442&#x27;, &#x27;I32554446&#x27;, &#x27;I32554466&#x27;, &#x27;I32554470&#x27;, &#x27;I32554482&#x27;, &#x27;I32554486&#x27;, &#x27;I32554506&#x27;, &#x27;I32554518&#x27;, &#x27;I32554522&#x27;, &#x27;I32554538&#x27;]</td></tr><tr class="fail"><td>Изменился состав атрибутов</td><td>BEFORE</td><td>decisionResult.available_offers.type</td><td>273</td><td>2002</td><td>0.1364</td><td>FAIL</td><td>HIGH</td><td>[&#x27;I32554362&#x27;, &#x27;I32554374&#x27;, &#x27;I32554378&#x27;, &#x27;I32554394&#x27;, &#x27;I32554398&#x27;, &#x27;I32554406&#x27;, &#x27;I32554410&#x27;, &#x27;I32554414&#x27;, &#x27;I32554430&#x27;, &#x27;I32554434&#x27;, &#x27;I32554442&#x27;, &#x27;I32554446&#x27;, &#x27;I32554466&#x27;, &#x27;I32554470&#x27;, &#x27;I32554482&#x27;, &#x27;I32554486&#x27;, &#x27;I32554506&#x27;, &#x27;I32554518&#x27;, &#x27;I32554522&#x27;, &#x27;I32554538&#x27;]</td></tr><tr class="fail"><td>Изменился состав атрибутов</td><td>BEFORE</td><td>decisionResult.product_trials.rules.description</td><td>56</td><td>2002</td><td>0.028</td><td>FAIL</td><td>HIGH</td><td>[&#x27;I32554354&#x27;, &#x27;I32554390&#x27;, &#x27;I32554462&#x27;, &#x27;I32554498&#x27;, &#x27;I32554570&#x27;, &#x27;I32554606&#x27;, &#x27;I32554678&#x27;, &#x27;I32554714&#x27;, &#x27;I32554786&#x27;, &#x27;I32554822&#x27;, &#x27;I32554894&#x27;, &#x27;I32554930&#x27;, &#x27;I32555002&#x27;, &#x27;I32555038&#x27;, &#x27;I32555110&#x27;, &#x27;I32555146&#x27;, &#x27;I32555218&#x27;, &#x27;I32555254&#x27;, &#x27;I32555326&#x27;, &#x27;I32555362&#x27;]</td></tr><tr class="fail"><td>Изменился состав атрибутов</td><td>BEFORE</td><td>decisionResult.product_trials.rules.hit</td><td>56</td><td>2002</td><td>0.028</td><td>FAIL</td><td>HIGH</td><td>[&#x27;I32554354&#x27;, &#x27;I32554390&#x27;, &#x27;I32554462&#x27;, &#x27;I32554498&#x27;, &#x27;I32554570&#x27;, &#x27;I32554606&#x27;, &#x27;I32554678&#x27;, &#x27;I32554714&#x27;, &#x27;I32554786&#x27;, &#x27;I32554822&#x27;, &#x27;I32554894&#x27;, &#x27;I32554930&#x27;, &#x27;I32555002&#x27;, &#x27;I32555038&#x27;, &#x27;I32555110&#x27;, &#x27;I32555146&#x27;, &#x27;I32555218&#x27;, &#x27;I32555254&#x27;, &#x27;I32555326&#x27;, &#x27;I32555362&#x27;]</td></tr><tr class="fail"><td>Изменился состав атрибутов</td><td>BEFORE</td><td>decisionResult.product_trials.rules.name</td><td>56</td><td>2002</td><td>0.028</td><td>FAIL</td><td>HIGH</td><td>[&#x27;I32554354&#x27;, &#x27;I32554390&#x27;, &#x27;I32554462&#x27;, &#x27;I32554498&#x27;, &#x27;I32554570&#x27;, &#x27;I32554606&#x27;, &#x27;I32554678&#x27;, &#x27;I32554714&#x27;, &#x27;I32554786&#x27;, &#x27;I32554822&#x27;, &#x27;I32554894&#x27;, &#x27;I32554930&#x27;, &#x27;I32555002&#x27;, &#x27;I32555038&#x27;, &#x27;I32555110&#x27;, &#x27;I32555146&#x27;, &#x27;I32555218&#x27;, &#x27;I32555254&#x27;, &#x27;I32555326&#x27;, &#x27;I32555362&#x27;]</td></tr><tr class="fail"><td>Изменился состав атрибутов</td><td>AFTER</td><td>decisionResult.available_offers.product_id</td><td>112</td><td>2002</td><td>0.0559</td><td>FAIL</td><td>HIGH</td><td>[&#x27;I32554354&#x27;, &#x27;I32554366&#x27;, &#x27;I32554390&#x27;, &#x27;I32554402&#x27;, &#x27;I32554462&#x27;, &#x27;I32554474&#x27;, &#x27;I32554498&#x27;, &#x27;I32554510&#x27;, &#x27;I32554570&#x27;, &#x27;I32554582&#x27;, &#x27;I32554606&#x27;, &#x27;I32554618&#x27;, &#x27;I32554678&#x27;, &#x27;I32554690&#x27;, &#x27;I32554714&#x27;, &#x27;I32554726&#x27;, &#x27;I32554786&#x27;, &#x27;I32554798&#x27;, &#x27;I32554822&#x27;, &#x27;I32554834&#x27;]</td></tr><tr class="fail"><td>Изменился состав атрибутов</td><td>AFTER</td><td>decisionResult.available_offers.product_name</td><td>112</td><td>2002</td><td>0.0559</td><td>FAIL</td><td>HIGH</td><td>[&#x27;I32554354&#x27;, &#x27;I32554366&#x27;, &#x27;I32554390&#x27;, &#x27;I32554402&#x27;, &#x27;I32554462&#x27;, &#x27;I32554474&#x27;, &#x27;I32554498&#x27;, &#x27;I32554510&#x27;, &#x27;I32554570&#x27;, &#x27;I32554582&#x27;, &#x27;I32554606&#x27;, &#x27;I32554618&#x27;, &#x27;I32554678&#x27;, &#x27;I32554690&#x27;, &#x27;I32554714&#x27;, &#x27;I32554726&#x27;, &#x27;I32554786&#x27;, &#x27;I32554798&#x27;, &#x27;I32554822&#x27;, &#x27;I32554834&#x27;]</td></tr><tr class="fail"><td>Изменился состав атрибутов</td><td>AFTER</td><td>decisionResult.available_offers.rank</td><td>112</td><td>2002</td><td>0.0559</td><td>FAIL</td><td>HIGH</td><td>[&#x27;I32554354&#x27;, &#x27;I32554366&#x27;, &#x27;I32554390&#x27;, &#x27;I32554402&#x27;, &#x27;I32554462&#x27;, &#x27;I32554474&#x27;, &#x27;I32554498&#x27;, &#x27;I32554510&#x27;, &#x27;I32554570&#x27;, &#x27;I32554582&#x27;, &#x27;I32554606&#x27;, &#x27;I32554618&#x27;, &#x27;I32554678&#x27;, &#x27;I32554690&#x27;, &#x27;I32554714&#x27;, &#x27;I32554726&#x27;, &#x27;I32554786&#x27;, &#x27;I32554798&#x27;, &#x27;I32554822&#x27;, &#x27;I32554834&#x27;]</td></tr><tr class="fail"><td>Изменился состав атрибутов</td><td>AFTER</td><td>decisionResult.available_offers.type</td><td>112</td><td>2002</td><td>0.0559</td><td>FAIL</td><td>HIGH</td><td>[&#x27;I32554354&#x27;, &#x27;I32554366&#x27;, &#x27;I32554390&#x27;, &#x27;I32554402&#x27;, &#x27;I32554462&#x27;, &#x27;I32554474&#x27;, &#x27;I32554498&#x27;, &#x27;I32554510&#x27;, &#x27;I32554570&#x27;, &#x27;I32554582&#x27;, &#x27;I32554606&#x27;, &#x27;I32554618&#x27;, &#x27;I32554678&#x27;, &#x27;I32554690&#x27;, &#x27;I32554714&#x27;, &#x27;I32554726&#x27;, &#x27;I32554786&#x27;, &#x27;I32554798&#x27;, &#x27;I32554822&#x27;, &#x27;I32554834&#x27;]</td></tr><tr class="fail"><td>Изменился состав атрибутов</td><td>AFTER</td><td>decisionResult.product_trials.rules.description</td><td>56</td><td>2002</td><td>0.028</td><td>FAIL</td><td>HIGH</td><td>[&#x27;I32554378&#x27;, &#x27;I32554414&#x27;, &#x27;I32554486&#x27;, &#x27;I32554522&#x27;, &#x27;I32554594&#x27;, &#x27;I32554630&#x27;, &#x27;I32554702&#x27;, &#x27;I32554738&#x27;, &#x27;I32554810&#x27;, &#x27;I32554846&#x27;, &#x27;I32554918&#x27;, &#x27;I32554954&#x27;, &#x27;I32555026&#x27;, &#x27;I32555062&#x27;, &#x27;I32555134&#x27;, &#x27;I32555170&#x27;, &#x27;I32555242&#x27;, &#x27;I32555278&#x27;, &#x27;I32555350&#x27;, &#x27;I32555386&#x27;]</td></tr><tr class="fail"><td>Изменился состав атрибутов</td><td>AFTER</td><td>decisionResult.product_trials.rules.hit</td><td>56</td><td>2002</td><td>0.028</td><td>FAIL</td><td>HIGH</td><td>[&#x27;I32554378&#x27;, &#x27;I32554414&#x27;, &#x27;I32554486&#x27;, &#x27;I32554522&#x27;, &#x27;I32554594&#x27;, &#x27;I32554630&#x27;, &#x27;I32554702&#x27;, &#x27;I32554738&#x27;, &#x27;I32554810&#x27;, &#x27;I32554846&#x27;, &#x27;I32554918&#x27;, &#x27;I32554954&#x27;, &#x27;I32555026&#x27;, &#x27;I32555062&#x27;, &#x27;I32555134&#x27;, &#x27;I32555170&#x27;, &#x27;I32555242&#x27;, &#x27;I32555278&#x27;, &#x27;I32555350&#x27;, &#x27;I32555386&#x27;]</td></tr><tr class="fail"><td>Изменился состав атрибутов</td><td>AFTER</td><td>decisionResult.product_trials.rules.name</td><td>56</td><td>2002</td><td>0.028</td><td>FAIL</td><td>HIGH</td><td>[&#x27;I32554378&#x27;, &#x27;I32554414&#x27;, &#x27;I32554486&#x27;, &#x27;I32554522&#x27;, &#x27;I32554594&#x27;, &#x27;I32554630&#x27;, &#x27;I32554702&#x27;, &#x27;I32554738&#x27;, &#x27;I32554810&#x27;, &#x27;I32554846&#x27;, &#x27;I32554918&#x27;, &#x27;I32554954&#x27;, &#x27;I32555026&#x27;, &#x27;I32555062&#x27;, &#x27;I32555134&#x27;, &#x27;I32555170&#x27;, &#x27;I32555242&#x27;, &#x27;I32555278&#x27;, &#x27;I32555350&#x27;, &#x27;I32555386&#x27;]</td></tr><tr class="fail"><td>Изменился состав атрибутов</td><td>AFTER</td><td>decisionResult.product_trials.scoring.scoreModels.modelName</td><td>167</td><td>2002</td><td>0.0834</td><td>FAIL</td><td>HIGH</td><td>[&#x27;I32554358&#x27;, &#x27;I32554370&#x27;, &#x27;I32554394&#x27;, &#x27;I32554406&#x27;, &#x27;I32554430&#x27;, &#x27;I32554442&#x27;, &#x27;I32554466&#x27;, &#x27;I32554478&#x27;, &#x27;I32554502&#x27;, &#x27;I32554514&#x27;, &#x27;I32554538&#x27;, &#x27;I32554550&#x27;, &#x27;I32554574&#x27;, &#x27;I32554586&#x27;, &#x27;I32554610&#x27;, &#x27;I32554622&#x27;, &#x27;I32554646&#x27;, &#x27;I32554658&#x27;, &#x27;I32554682&#x27;, &#x27;I32554694&#x27;]</td></tr><tr class="fail"><td>Изменился состав атрибутов</td><td>AFTER</td><td>decisionResult.product_trials.scoring.scoreModels.type</td><td>167</td><td>2002</td><td>0.0834</td><td>FAIL</td><td>HIGH</td><td>[&#x27;I32554358&#x27;, &#x27;I32554370&#x27;, &#x27;I32554394&#x27;, &#x27;I32554406&#x27;, &#x27;I32554430&#x27;, &#x27;I32554442&#x27;, &#x27;I32554466&#x27;, &#x27;I32554478&#x27;, &#x27;I32554502&#x27;, &#x27;I32554514&#x27;, &#x27;I32554538&#x27;, &#x27;I32554550&#x27;, &#x27;I32554574&#x27;, &#x27;I32554586&#x27;, &#x27;I32554610&#x27;, &#x27;I32554622&#x27;, &#x27;I32554646&#x27;, &#x27;I32554658&#x27;, &#x27;I32554682&#x27;, &#x27;I32554694&#x27;]</td></tr><tr class="fail"><td>Изменился состав атрибутов</td><td>AFTER</td><td>decisionResult.product_trials.scoring.scoreModels.value</td><td>167</td><td>2002</td><td>0.0834</td><td>FAIL</td><td>HIGH</td><td>[&#x27;I32554358&#x27;, &#x27;I32554370&#x27;, &#x27;I32554394&#x27;, &#x27;I32554406&#x27;, &#x27;I32554430&#x27;, &#x27;I32554442&#x27;, &#x27;I32554466&#x27;, &#x27;I32554478&#x27;, &#x27;I32554502&#x27;, &#x27;I32554514&#x27;, &#x27;I32554538&#x27;, &#x27;I32554550&#x27;, &#x27;I32554574&#x27;, &#x27;I32554586&#x27;, &#x27;I32554610&#x27;, &#x27;I32554622&#x27;, &#x27;I32554646&#x27;, &#x27;I32554658&#x27;, &#x27;I32554682&#x27;, &#x27;I32554694&#x27;]</td></tr><tr class="fail"><td>Изменился состав атрибутов</td><td>AFTER</td><td>decisionResult.scoring.features.age</td><td>167</td><td>2002</td><td>0.0834</td><td>FAIL</td><td>HIGH</td><td>[&#x27;I32554358&#x27;, &#x27;I32554370&#x27;, &#x27;I32554394&#x27;, &#x27;I32554406&#x27;, &#x27;I32554430&#x27;, &#x27;I32554442&#x27;, &#x27;I32554466&#x27;, &#x27;I32554478&#x27;, &#x27;I32554502&#x27;, &#x27;I32554514&#x27;, &#x27;I32554538&#x27;, &#x27;I32554550&#x27;, &#x27;I32554574&#x27;, &#x27;I32554586&#x27;, &#x27;I32554610&#x27;, &#x27;I32554622&#x27;, &#x27;I32554646&#x27;, &#x27;I32554658&#x27;, &#x27;I32554682&#x27;, &#x27;I32554694&#x27;]</td></tr><tr class="fail"><td>Изменился состав атрибутов</td><td>AFTER</td><td>decisionResult.scoring.features.cntDelinq90d12m</td><td>167</td><td>2002</td><td>0.0834</td><td>FAIL</td><td>HIGH</td><td>[&#x27;I32554358&#x27;, &#x27;I32554370&#x27;, &#x27;I32554394&#x27;, &#x27;I32554406&#x27;, &#x27;I32554430&#x27;, &#x27;I32554442&#x27;, &#x27;I32554466&#x27;, &#x27;I32554478&#x27;, &#x27;I32554502&#x27;, &#x27;I32554514&#x27;, &#x27;I32554538&#x27;, &#x27;I32554550&#x27;, &#x27;I32554574&#x27;, &#x27;I32554586&#x27;, &#x27;I32554610&#x27;, &#x27;I32554622&#x27;, &#x27;I32554646&#x27;, &#x27;I32554658&#x27;, &#x27;I32554682&#x27;, &#x27;I32554694&#x27;]</td></tr><tr class="fail"><td>Изменился состав атрибутов</td><td>AFTER</td><td>decisionResult.scoring.features.monthsSinceLastLoan</td><td>167</td><td>2002</td><td>0.0834</td><td>FAIL</td><td>HIGH</td><td>[&#x27;I32554358&#x27;, &#x27;I32554370&#x27;, &#x27;I32554394&#x27;, &#x27;I32554406&#x27;, &#x27;I32554430&#x27;, &#x27;I32554442&#x27;, &#x27;I32554466&#x27;, &#x27;I32554478&#x27;, &#x27;I32554502&#x27;, &#x27;I32554514&#x27;, &#x27;I32554538&#x27;, &#x27;I32554550&#x27;, &#x27;I32554574&#x27;, &#x27;I32554586&#x27;, &#x27;I32554610&#x27;, &#x27;I32554622&#x27;, &#x27;I32554646&#x27;, &#x27;I32554658&#x27;, &#x27;I32554682&#x27;, &#x27;I32554694&#x27;]</td></tr><tr class="fail"><td>Изменился состав атрибутов</td><td>AFTER</td><td>decisionResult.scoring.modelName</td><td>167</td><td>2002</td><td>0.0834</td><td>FAIL</td><td>HIGH</td><td>[&#x27;I32554358&#x27;, &#x27;I32554370&#x27;, &#x27;I32554394&#x27;, &#x27;I32554406&#x27;, &#x27;I32554430&#x27;, &#x27;I32554442&#x27;, &#x27;I32554466&#x27;, &#x27;I32554478&#x27;, &#x27;I32554502&#x27;, &#x27;I32554514&#x27;, &#x27;I32554538&#x27;, &#x27;I32554550&#x27;, &#x27;I32554574&#x27;, &#x27;I32554586&#x27;, &#x27;I32554610&#x27;, &#x27;I32554622&#x27;, &#x27;I32554646&#x27;, &#x27;I32554658&#x27;, &#x27;I32554682&#x27;, &#x27;I32554694&#x27;]</td></tr><tr class="fail"><td>Изменился состав атрибутов</td><td>AFTER</td><td>decisionResult.scoring.value</td><td>167</td><td>2002</td><td>0.0834</td><td>FAIL</td><td>HIGH</td><td>[&#x27;I32554358&#x27;, &#x27;I32554370&#x27;, &#x27;I32554394&#x27;, &#x27;I32554406&#x27;, &#x27;I32554430&#x27;, &#x27;I32554442&#x27;, &#x27;I32554466&#x27;, &#x27;I32554478&#x27;, &#x27;I32554502&#x27;, &#x27;I32554514&#x27;, &#x27;I32554538&#x27;, &#x27;I32554550&#x27;, &#x27;I32554574&#x27;, &#x27;I32554586&#x27;, &#x27;I32554610&#x27;, &#x27;I32554622&#x27;, &#x27;I32554646&#x27;, &#x27;I32554658&#x27;, &#x27;I32554682&#x27;, &#x27;I32554694&#x27;]</td></tr><tr class="fail"><td>Различие вызвано входными данными</td><td>AFTER</td><td>characteristics.score_okb</td><td>167</td><td>2002</td><td>0.0834</td><td>FAIL</td><td>HIGH</td><td>[&#x27;I32554362&#x27;, &#x27;I32554374&#x27;, &#x27;I32554398&#x27;, &#x27;I32554410&#x27;, &#x27;I32554434&#x27;, &#x27;I32554446&#x27;, &#x27;I32554470&#x27;, &#x27;I32554482&#x27;, &#x27;I32554506&#x27;, &#x27;I32554518&#x27;, &#x27;I32554542&#x27;, &#x27;I32554554&#x27;, &#x27;I32554578&#x27;, &#x27;I32554590&#x27;, &#x27;I32554614&#x27;, &#x27;I32554626&#x27;, &#x27;I32554650&#x27;, &#x27;I32554662&#x27;, &#x27;I32554686&#x27;, &#x27;I32554698&#x27;]</td></tr><tr class="pass"><td>Различие вызвано входными данными</td><td>AFTER</td><td>предиктор != источник</td><td>0</td><td>2002</td><td>0.0</td><td>PASS</td><td>HIGH</td><td>[]</td></tr><tr class="fail"><td>Стоп-фактор перестал работать</td><td>AFTER</td><td>AGELOW@21</td><td>56</td><td>2002</td><td>0.028</td><td>FAIL</td><td>HIGH</td><td>[&#x27;I32554354&#x27;, &#x27;I32554390&#x27;, &#x27;I32554462&#x27;, &#x27;I32554498&#x27;, &#x27;I32554570&#x27;, &#x27;I32554606&#x27;, &#x27;I32554678&#x27;, &#x27;I32554714&#x27;, &#x27;I32554786&#x27;, &#x27;I32554822&#x27;, &#x27;I32554894&#x27;, &#x27;I32554930&#x27;, &#x27;I32555002&#x27;, &#x27;I32555038&#x27;, &#x27;I32555110&#x27;, &#x27;I32555146&#x27;, &#x27;I32555218&#x27;, &#x27;I32555254&#x27;, &#x27;I32555326&#x27;, &#x27;I32555362&#x27;]</td></tr><tr class="fail"><td>Стоп-фактор перестал работать</td><td>AFTER</td><td>AGELOW@21</td><td>56</td><td>2002</td><td>0.028</td><td>FAIL</td><td>HIGH</td><td>[&#x27;I32554366&#x27;, &#x27;I32554402&#x27;, &#x27;I32554474&#x27;, &#x27;I32554510&#x27;, &#x27;I32554582&#x27;, &#x27;I32554618&#x27;, &#x27;I32554690&#x27;, &#x27;I32554726&#x27;, &#x27;I32554798&#x27;, &#x27;I32554834&#x27;, &#x27;I32554906&#x27;, &#x27;I32554942&#x27;, &#x27;I32555014&#x27;, &#x27;I32555050&#x27;, &#x27;I32555122&#x27;, &#x27;I32555158&#x27;, &#x27;I32555230&#x27;, &#x27;I32555266&#x27;, &#x27;I32555338&#x27;, &#x27;I32555374&#x27;]</td></tr><tr class="fail"><td>Сменилась целевая модель решения</td><td>AFTER</td><td>12412:ML_MICRO_LOAN_V1;15210:ML_MICRO_LOAN_V1 -&gt; 12412:ML_MICRO_LOAN_V3;15210:ML_MICRO_LOAN_V3</td><td>16</td><td>2002</td><td>0.008</td><td>FAIL</td><td>HIGH</td><td>[&#x27;I32554574&#x27;, &#x27;I32554730&#x27;, &#x27;I32554754&#x27;, &#x27;I32555222&#x27;, &#x27;I32555546&#x27;, &#x27;I32555810&#x27;, &#x27;I32556134&#x27;, &#x27;I32556206&#x27;, &#x27;I32556422&#x27;, &#x27;I32556518&#x27;, &#x27;I32556854&#x27;, &#x27;I32556878&#x27;, &#x27;I32557130&#x27;, &#x27;I32557142&#x27;, &#x27;I32557238&#x27;, &#x27;I32557286&#x27;]</td></tr><tr class="fail"><td>Сменилась целевая модель решения</td><td>AFTER</td><td>12412:ML_MICRO_LOAN_V1;15210:ML_MICRO_LOAN_V1;5123:ML_MICRO_LOAN_V1 -&gt; 12412:ML_MICRO_LOAN_V3;15210:ML_MICRO_LOAN_V3;5123:ML_MICRO_LOAN_V3</td><td>7</td><td>2002</td><td>0.0035</td><td>FAIL</td><td>HIGH</td><td>[&#x27;I32554478&#x27;, &#x27;I32554910&#x27;, &#x27;I32555582&#x27;, &#x27;I32556230&#x27;, &#x27;I32556494&#x27;, &#x27;I32556950&#x27;, &#x27;I32557274&#x27;]</td></tr><tr class="fail"><td>Сменилась целевая модель решения</td><td>AFTER</td><td>12412:ML_MICRO_LOAN_V1;15210:ML_MICRO_LOAN_V1;751:ML_MICRO_LOAN_V1 -&gt; 12412:ML_MICRO_LOAN_V3;15210:ML_MICRO_LOAN_V3;751:ML_MICRO_LOAN_V3</td><td>6</td><td>2002</td><td>0.003</td><td>FAIL</td><td>HIGH</td><td>[&#x27;I32554466&#x27;, &#x27;I32555402&#x27;, &#x27;I32555702&#x27;, &#x27;I32556062&#x27;, &#x27;I32556890&#x27;, &#x27;I32557022&#x27;]</td></tr><tr class="fail"><td>Сменилась целевая модель решения</td><td>AFTER</td><td>12412:ML_MICRO_LOAN_V1;15210:ML_MICRO_LOAN_V1;91741:ML_MICRO_LOAN_V1 -&gt; 12412:ML_MICRO_LOAN_V3;15210:ML_MICRO_LOAN_V3;91741:ML_MICRO_LOAN_V3</td><td>6</td><td>2002</td><td>0.003</td><td>FAIL</td><td>HIGH</td><td>[&#x27;I32554358&#x27;, &#x27;I32554694&#x27;, &#x27;I32555294&#x27;, &#x27;I32556050&#x27;, &#x27;I32556374&#x27;, &#x27;I32557034&#x27;]</td></tr><tr class="fail"><td>Сменилась целевая модель решения</td><td>AFTER</td><td>12412:ML_MICRO_LOAN_V1;5123:ML_MICRO_LOAN_V1 -&gt; 12412:ML_MICRO_LOAN_V3;5123:ML_MICRO_LOAN_V3</td><td>12</td><td>2002</td><td>0.006</td><td>FAIL</td><td>HIGH</td><td>[&#x27;I32554538&#x27;, &#x27;I32554586&#x27;, &#x27;I32554682&#x27;, &#x27;I32555198&#x27;, &#x27;I32555522&#x27;, &#x27;I32555726&#x27;, &#x27;I32556566&#x27;, &#x27;I32556710&#x27;, &#x27;I32556734&#x27;, &#x27;I32556806&#x27;, &#x27;I32557070&#x27;, &#x27;I32557250&#x27;]</td></tr><tr class="low"><td>Сменилась целевая модель решения</td><td>AFTER</td><td>12412:ML_MICRO_LOAN_V1;5123:ML_MICRO_LOAN_V1;751:ML_MICRO_LOAN_V1 -&gt; 12412:ML_MICRO_LOAN_V3;5123:ML_MICRO_LOAN_V3;751:ML_MICRO_LOAN_V3</td><td>4</td><td>2002</td><td>0.002</td><td>FAIL</td><td>LOW</td><td>[&#x27;I32554406&#x27;, &#x27;I32554946&#x27;, &#x27;I32556698&#x27;, &#x27;I32556818&#x27;]</td></tr><tr class="low"><td>Сменилась целевая модель решения</td><td>AFTER</td><td>12412:ML_MICRO_LOAN_V1;5123:ML_MICRO_LOAN_V1;91741:ML_MICRO_LOAN_V1 -&gt; 12412:ML_MICRO_LOAN_V3;5123:ML_MICRO_LOAN_V3;91741:ML_MICRO_LOAN_V3</td><td>4</td><td>2002</td><td>0.002</td><td>FAIL</td><td>LOW</td><td>[&#x27;I32555474&#x27;, &#x27;I32556014&#x27;, &#x27;I32556458&#x27;, &#x27;I32556998&#x27;]</td></tr><tr class="fail"><td>Сменилась целевая модель решения</td><td>AFTER</td><td>12412:ML_MICRO_LOAN_V1;751:ML_MICRO_LOAN_V1 -&gt; 12412:ML_MICRO_LOAN_V3;751:ML_MICRO_LOAN_V3</td><td>7</td><td>2002</td><td>0.0035</td><td>FAIL</td><td>HIGH</td><td>[&#x27;I32554838&#x27;, &#x27;I32555114&#x27;, &#x27;I32555126&#x27;, &#x27;I32555978&#x27;, &#x27;I32556122&#x27;, &#x27;I32556350&#x27;, &#x27;I32556446&#x27;]</td></tr><tr class="fail"><td>Сменилась целевая модель решения</td><td>AFTER</td><td>12412:ML_MICRO_LOAN_V1;751:ML_MICRO_LOAN_V1;91741:ML_MICRO_LOAN_V1 -&gt; 12412:ML_MICRO_LOAN_V3;751:ML_MICRO_LOAN_V3;91741:ML_MICRO_LOAN_V3</td><td>8</td><td>2002</td><td>0.004</td><td>FAIL</td><td>HIGH</td><td>[&#x27;I32554658&#x27;, &#x27;I32554718&#x27;, &#x27;I32555006&#x27;, &#x27;I32555078&#x27;, &#x27;I32555438&#x27;, &#x27;I32556098&#x27;, &#x27;I32556170&#x27;, &#x27;I32557202&#x27;]</td></tr><tr class="fail"><td>Сменилась целевая модель решения</td><td>AFTER</td><td>12412:ML_MICRO_LOAN_V1;91741:ML_MICRO_LOAN_V1 -&gt; 12412:ML_MICRO_LOAN_V3;91741:ML_MICRO_LOAN_V3</td><td>12</td><td>2002</td><td>0.006</td><td>FAIL</td><td>HIGH</td><td>[&#x27;I32554514&#x27;, &#x27;I32554802&#x27;, &#x27;I32554898&#x27;, &#x27;I32555042&#x27;, &#x27;I32555366&#x27;, &#x27;I32555558&#x27;, &#x27;I32555618&#x27;, &#x27;I32555762&#x27;, &#x27;I32556026&#x27;, &#x27;I32556158&#x27;, &#x27;I32556746&#x27;, &#x27;I32556782&#x27;]</td></tr><tr class="fail"><td>Сменилась целевая модель решения</td><td>AFTER</td><td>15210:ML_MICRO_LOAN_V1;5123:ML_MICRO_LOAN_V1 -&gt; 15210:ML_MICRO_LOAN_V3;5123:ML_MICRO_LOAN_V3</td><td>5</td><td>2002</td><td>0.0025</td><td>FAIL</td><td>HIGH</td><td>[&#x27;I32554502&#x27;, &#x27;I32554766&#x27;, &#x27;I32555150&#x27;, &#x27;I32555162&#x27;, &#x27;I32557178&#x27;]</td></tr><tr class="fail"><td>Сменилась целевая модель решения</td><td>AFTER</td><td>15210:ML_MICRO_LOAN_V1;5123:ML_MICRO_LOAN_V1;751:ML_MICRO_LOAN_V1 -&gt; 15210:ML_MICRO_LOAN_V3;5123:ML_MICRO_LOAN_V3;751:ML_MICRO_LOAN_V3</td><td>6</td><td>2002</td><td>0.003</td><td>FAIL</td><td>HIGH</td><td>[&#x27;I32554874&#x27;, &#x27;I32554934&#x27;, &#x27;I32555450&#x27;, &#x27;I32555666&#x27;, &#x27;I32556386&#x27;, &#x27;I32556674&#x27;]</td></tr><tr class="fail"><td>Сменилась целевая модель решения</td><td>AFTER</td><td>15210:ML_MICRO_LOAN_V1;5123:ML_MICRO_LOAN_V1;91741:ML_MICRO_LOAN_V1 -&gt; 15210:ML_MICRO_LOAN_V3;5123:ML_MICRO_LOAN_V3;91741:ML_MICRO_LOAN_V3</td><td>6</td><td>2002</td><td>0.003</td><td>FAIL</td><td>HIGH</td><td>[&#x27;I32554646&#x27;, &#x27;I32555234&#x27;, &#x27;I32555378&#x27;, &#x27;I32555630&#x27;, &#x27;I32555690&#x27;, &#x27;I32556410&#x27;]</td></tr><tr class="fail"><td>Сменилась целевая модель решения</td><td>AFTER</td><td>15210:ML_MICRO_LOAN_V1;751:ML_MICRO_LOAN_V1 -&gt; 15210:ML_MICRO_LOAN_V3;751:ML_MICRO_LOAN_V3</td><td>10</td><td>2002</td><td>0.005</td><td>FAIL</td><td>HIGH</td><td>[&#x27;I32555018&#x27;, &#x27;I32555774&#x27;, &#x27;I32555882&#x27;, &#x27;I32556266&#x27;, &#x27;I32556314&#x27;, &#x27;I32556482&#x27;, &#x27;I32556842&#x27;, &#x27;I32556914&#x27;, &#x27;I32557214&#x27;, &#x27;I32557346&#x27;]</td></tr><tr class="fail"><td>Сменилась целевая модель решения</td><td>AFTER</td><td>15210:ML_MICRO_LOAN_V1;751:ML_MICRO_LOAN_V1;91741:ML_MICRO_LOAN_V1 -&gt; 15210:ML_MICRO_LOAN_V3;751:ML_MICRO_LOAN_V3;91741:ML_MICRO_LOAN_V3</td><td>10</td><td>2002</td><td>0.005</td><td>FAIL</td><td>HIGH</td><td>[&#x27;I32554394&#x27;, &#x27;I32554430&#x27;, &#x27;I32555090&#x27;, &#x27;I32555258&#x27;, &#x27;I32555510&#x27;, &#x27;I32555654&#x27;, &#x27;I32556242&#x27;, &#x27;I32556278&#x27;, &#x27;I32556638&#x27;, &#x27;I32557166&#x27;]</td></tr><tr class="fail"><td>Сменилась целевая модель решения</td><td>AFTER</td><td>15210:ML_MICRO_LOAN_V1;91741:ML_MICRO_LOAN_V1 -&gt; 15210:ML_MICRO_LOAN_V3;91741:ML_MICRO_LOAN_V3</td><td>5</td><td>2002</td><td>0.0025</td><td>FAIL</td><td>HIGH</td><td>[&#x27;I32555330&#x27;, &#x27;I32555342&#x27;, &#x27;I32555906&#x27;, &#x27;I32556626&#x27;, &#x27;I32557322&#x27;]</td></tr><tr class="fail"><td>Сменилась целевая модель решения</td><td>AFTER</td><td>5123:ML_MICRO_LOAN_V1;751:ML_MICRO_LOAN_V1 -&gt; 5123:ML_MICRO_LOAN_V3;751:ML_MICRO_LOAN_V3</td><td>12</td><td>2002</td><td>0.006</td><td>FAIL</td><td>HIGH</td><td>[&#x27;I32554442&#x27;, &#x27;I32554790&#x27;, &#x27;I32554982&#x27;, &#x27;I32555306&#x27;, &#x27;I32555414&#x27;, &#x27;I32555798&#x27;, &#x27;I32555942&#x27;, &#x27;I32556530&#x27;, &#x27;I32556602&#x27;, &#x27;I32556962&#x27;, &#x27;I32557106&#x27;, &#x27;I32557310&#x27;]</td></tr><tr class="fail"><td>Сменилась целевая модель решения</td><td>AFTER</td><td>5123:ML_MICRO_LOAN_V1;751:ML_MICRO_LOAN_V1;91741:ML_MICRO_LOAN_V1 -&gt; 5123:ML_MICRO_LOAN_V3;751:ML_MICRO_LOAN_V3;91741:ML_MICRO_LOAN_V3</td><td>5</td><td>2002</td><td>0.0025</td><td>FAIL</td><td>HIGH</td><td>[&#x27;I32554826&#x27;, &#x27;I32554970&#x27;, &#x27;I32555870&#x27;, &#x27;I32556086&#x27;, &#x27;I32557094&#x27;]</td></tr><tr class="fail"><td>Сменилась целевая модель решения</td><td>AFTER</td><td>5123:ML_MICRO_LOAN_V1;91741:ML_MICRO_LOAN_V1 -&gt; 5123:ML_MICRO_LOAN_V3;91741:ML_MICRO_LOAN_V3</td><td>9</td><td>2002</td><td>0.0045</td><td>FAIL</td><td>HIGH</td><td>[&#x27;I32554622&#x27;, &#x27;I32554862&#x27;, &#x27;I32555054&#x27;, &#x27;I32555186&#x27;, &#x27;I32555270&#x27;, &#x27;I32555738&#x27;, &#x27;I32556302&#x27;, &#x27;I32556554&#x27;, &#x27;I32556926&#x27;]</td></tr><tr class="fail"><td>Сменилась целевая модель решения</td><td>AFTER</td><td>751:ML_MICRO_LOAN_V1;91741:ML_MICRO_LOAN_V1 -&gt; 751:ML_MICRO_LOAN_V3;91741:ML_MICRO_LOAN_V3</td><td>17</td><td>2002</td><td>0.0085</td><td>FAIL</td><td>HIGH</td><td>[&#x27;I32554370&#x27;, &#x27;I32554550&#x27;, &#x27;I32554610&#x27;, &#x27;I32555486&#x27;, &#x27;I32555594&#x27;, &#x27;I32555834&#x27;, &#x27;I32555846&#x27;, &#x27;I32555918&#x27;, &#x27;I32555954&#x27;, &#x27;I32555990&#x27;, &#x27;I32556194&#x27;, &#x27;I32556338&#x27;, &#x27;I32556590&#x27;, &#x27;I32556662&#x27;, &#x27;I32556770&#x27;, &#x27;I32556986&#x27;, &#x27;I32557058&#x27;]</td></tr><tr class="fail"><td>Моя проверка изменений</td><td>AFTER</td><td>Все изменения</td><td>502</td><td>2002</td><td>0.25074925074925075</td><td>FAIL</td><td>HIGH</td><td>[&#x27;I32554354&#x27;, &#x27;I32554358&#x27;, &#x27;I32554362&#x27;, &#x27;I32554366&#x27;, &#x27;I32554370&#x27;, &#x27;I32554374&#x27;, &#x27;I32554378&#x27;, &#x27;I32554390&#x27;, &#x27;I32554394&#x27;, &#x27;I32554398&#x27;, &#x27;I32554402&#x27;, &#x27;I32554406&#x27;, &#x27;I32554410&#x27;, &#x27;I32554414&#x27;, &#x27;I32554430&#x27;, &#x27;I32554434&#x27;, &#x27;I32554442&#x27;, &#x27;I32554446&#x27;, &#x27;I32554462&#x27;, &#x27;I32554466&#x27;]</td></tr></tbody></table>
+    <h2>Парная статистика</h2><pre>{
+  &quot;app_approval_rate&quot;: {
+    &quot;n&quot;: 2002,
+    &quot;before&quot;: 657,
+    &quot;after&quot;: 496,
+    &quot;lost&quot;: 273,
+    &quot;gained&quot;: 112,
+    &quot;delta&quot;: -0.08041958041958042,
+    &quot;ci&quot;: [
+      -0.0984140859140859,
+      -0.06143856143856144
+    ],
+    &quot;p&quot;: 1.254165079861648e-16,
+    &quot;information&quot;: &quot;available&quot;
+  },
+  &quot;approved_products&quot;: {
+    &quot;n&quot;: 2002,
+    &quot;before&quot;: 1544,
+    &quot;after&quot;: 1163,
+    &quot;delta&quot;: -0.1903096903096903,
+    &quot;median_delta&quot;: 0.0,
+    &quot;ci&quot;: [
+      -0.23476523476523475,
+      -0.14634115884115903
+    ],
+    &quot;median_ci&quot;: [
+      0.0,
+      0.0
+    ],
+    &quot;unit&quot;: &quot;products per application&quot;
+  },
+  &quot;target_score&quot;: {
+    &quot;n&quot;: 1835,
+    &quot;delta&quot;: -0.018201634877384198,
+    &quot;ci&quot;: [
+      -0.020926430517711175,
+      -0.015585831062670301
+    ],
+    &quot;median_delta&quot;: 0.0,
+    &quot;median_ci&quot;: [
+      0.0,
+      0.0
+    ],
+    &quot;type&quot;: &quot;APPROVAL_PROBABILITY&quot;,
+    &quot;unit&quot;: &quot;mean per-app score delta, same model and scale&quot;
+  },
+  &quot;families&quot;: {
+    &quot;products&quot;: [
+      {
+        &quot;n&quot;: 945,
+        &quot;before&quot;: 309,
+        &quot;after&quot;: 234,
+        &quot;lost&quot;: 128,
+        &quot;gained&quot;: 53,
+        &quot;delta&quot;: -0.07936507936507936,
+        &quot;ci&quot;: [
+          -0.10793650793650794,
+          -0.05185185185185185
+        ],
+        &quot;p&quot;: 2.4140870627060118e-08,
+        &quot;information&quot;: &quot;available&quot;,
+        &quot;group&quot;: &quot;5123&quot;,
+        &quot;coverage&quot;: {
+          &quot;AFTER&quot;: 945,
+          &quot;BEFORE&quot;: 945
+        },
+        &quot;family&quot;: &quot;products&quot;,
+        &quot;appeared&quot;: 0,
+        &quot;disappeared&quot;: 0,
+        &quot;p_adjusted&quot;: 7.242261188118036e-08
+      },
+      {
+        &quot;n&quot;: 927,
+        &quot;before&quot;: 311,
+        &quot;after&quot;: 238,
+        &quot;lost&quot;: 125,
+        &quot;gained&quot;: 52,
+        &quot;delta&quot;: -0.07874865156418555,
+        &quot;ci&quot;: [
+          -0.10679611650485436,
+          -0.05070118662351672
+        ],
+        &quot;p&quot;: 4.050380381964048e-08,
+        &quot;information&quot;: &quot;available&quot;,
+        &quot;group&quot;: &quot;15210&quot;,
+        &quot;coverage&quot;: {
+          &quot;BEFORE&quot;: 927,
+          &quot;AFTER&quot;: 927
+        },
+        &quot;family&quot;: &quot;products&quot;,
+        &quot;appeared&quot;: 0,
+        &quot;disappeared&quot;: 0,
+        &quot;p_adjusted&quot;: 7.242261188118036e-08
+      },
+      {
+        &quot;n&quot;: 944,
+        &quot;before&quot;: 302,
+        &quot;after&quot;: 226,
+        &quot;lost&quot;: 131,
+        &quot;gained&quot;: 55,
+        &quot;delta&quot;: -0.08050847457627118,
+        &quot;ci&quot;: [
+          -0.10699152542372882,
+          -0.05402542372881356
+        ],
+        &quot;p&quot;: 2.4620428565248355e-08,
+        &quot;information&quot;: &quot;available&quot;,
+        &quot;group&quot;: &quot;91741&quot;,
+        &quot;coverage&quot;: {
+          &quot;AFTER&quot;: 944,
+          &quot;BEFORE&quot;: 944
+        },
+        &quot;family&quot;: &quot;products&quot;,
+        &quot;appeared&quot;: 0,
+        &quot;disappeared&quot;: 0,
+        &quot;p_adjusted&quot;: 7.242261188118036e-08
+      },
+      {
+        &quot;n&quot;: 947,
+        &quot;before&quot;: 319,
+        &quot;after&quot;: 239,
+        &quot;lost&quot;: 130,
+        &quot;gained&quot;: 50,
+        &quot;delta&quot;: -0.08447729672650475,
+        &quot;ci&quot;: [
+          -0.1119324181626188,
+          -0.057022175290390706
+        ],
+        &quot;p&quot;: 2.134824201786866e-09,
+        &quot;information&quot;: &quot;available&quot;,
+        &quot;group&quot;: &quot;12412&quot;,
+        &quot;coverage&quot;: {
+          &quot;BEFORE&quot;: 947,
+          &quot;AFTER&quot;: 947
+        },
+        &quot;family&quot;: &quot;products&quot;,
+        &quot;appeared&quot;: 0,
+        &quot;disappeared&quot;: 0,
+        &quot;p_adjusted&quot;: 1.067412100893433e-08
+      },
+      {
+        &quot;n&quot;: 925,
+        &quot;before&quot;: 303,
+        &quot;after&quot;: 226,
+        &quot;lost&quot;: 131,
+        &quot;gained&quot;: 54,
+        &quot;delta&quot;: -0.08324324324324324,
+        &quot;ci&quot;: [
+          -0.11135135135135135,
+          -0.05405405405405406
+        ],
+        &quot;p&quot;: 1.438186658493686e-08,
+        &quot;information&quot;: &quot;available&quot;,
+        &quot;group&quot;: &quot;751&quot;,
+        &quot;coverage&quot;: {
+          &quot;BEFORE&quot;: 925,
+          &quot;AFTER&quot;: 925
+        },
+        &quot;family&quot;: &quot;products&quot;,
+        &quot;appeared&quot;: 0,
+        &quot;disappeared&quot;: 0,
+        &quot;p_adjusted&quot;: 5.752746633974744e-08
+      }
+    ],
+    &quot;partners&quot;: [
+      {
+        &quot;n&quot;: 945,
+        &quot;before&quot;: 309,
+        &quot;after&quot;: 234,
+        &quot;lost&quot;: 128,
+        &quot;gained&quot;: 53,
+        &quot;delta&quot;: -0.07936507936507936,
+        &quot;ci&quot;: [
+          -0.10687830687830688,
+          -0.05291005291005291
+        ],
+        &quot;p&quot;: 2.4140870627060118e-08,
+        &quot;information&quot;: &quot;available&quot;,
+        &quot;group&quot;: &quot;1233&quot;,
+        &quot;coverage&quot;: {
+          &quot;AFTER&quot;: 945,
+          &quot;BEFORE&quot;: 945
+        },
+        &quot;family&quot;: &quot;partners&quot;,
+        &quot;p_adjusted&quot;: 7.242261188118036e-08
+      },
+      {
+        &quot;n&quot;: 927,
+        &quot;before&quot;: 311,
+        &quot;after&quot;: 238,
+        &quot;lost&quot;: 125,
+        &quot;gained&quot;: 52,
+        &quot;delta&quot;: -0.07874865156418555,
+        &quot;ci&quot;: [
+          -0.10679611650485436,
+          -0.04962243797195254
+        ],
+        &quot;p&quot;: 4.050380381964048e-08,
+        &quot;information&quot;: &quot;available&quot;,
+        &quot;group&quot;: &quot;1450&quot;,
+        &quot;coverage&quot;: {
+          &quot;BEFORE&quot;: 927,
+          &quot;AFTER&quot;: 927
+        },
+        &quot;family&quot;: &quot;partners&quot;,
+        &quot;p_adjusted&quot;: 7.242261188118036e-08
+      },
+      {
+        &quot;n&quot;: 944,
+        &quot;before&quot;: 302,
+        &quot;after&quot;: 226,
+        &quot;lost&quot;: 131,
+        &quot;gained&quot;: 55,
+        &quot;delta&quot;: -0.08050847457627118,
+        &quot;ci&quot;: [
+          -0.10911016949152542,
+          -0.05190677966101695
+        ],
+        &quot;p&quot;: 2.4620428565248355e-08,
+        &quot;information&quot;: &quot;available&quot;,
+        &quot;group&quot;: &quot;1602&quot;,
+        &quot;coverage&quot;: {
+          &quot;BEFORE&quot;: 944,
+          &quot;AFTER&quot;: 944
+        },
+        &quot;family&quot;: &quot;partners&quot;,
+        &quot;p_adjusted&quot;: 7.242261188118036e-08
+      },
+      {
+        &quot;n&quot;: 947,
+        &quot;before&quot;: 319,
+        &quot;after&quot;: 239,
+        &quot;lost&quot;: 130,
+        &quot;gained&quot;: 50,
+        &quot;delta&quot;: -0.08447729672650475,
+        &quot;ci&quot;: [
+          -0.11087645195353749,
+          -0.057022175290390706
+        ],
+        &quot;p&quot;: 2.134824201786866e-09,
+        &quot;information&quot;: &quot;available&quot;,
+        &quot;group&quot;: &quot;1777&quot;,
+        &quot;coverage&quot;: {
+          &quot;BEFORE&quot;: 947,
+          &quot;AFTER&quot;: 947
+        },
+        &quot;family&quot;: &quot;partners&quot;,
+        &quot;p_adjusted&quot;: 1.067412100893433e-08
+      },
+      {
+        &quot;n&quot;: 925,
+        &quot;before&quot;: 303,
+        &quot;after&quot;: 226,
+        &quot;lost&quot;: 131,
+        &quot;gained&quot;: 54,
+        &quot;delta&quot;: -0.08324324324324324,
+        &quot;ci&quot;: [
+          -0.11243243243243244,
+          -0.055135135135135134
+        ],
+        &quot;p&quot;: 1.438186658493686e-08,
+        &quot;information&quot;: &quot;available&quot;,
+        &quot;group&quot;: &quot;1901&quot;,
+        &quot;coverage&quot;: {
+          &quot;BEFORE&quot;: 925,
+          &quot;AFTER&quot;: 925
+        },
+        &quot;family&quot;: &quot;partners&quot;,
+        &quot;p_adjusted&quot;: 5.752746633974744e-08
+      }
+    ]
+  },
+  &quot;strata&quot;: {
+    &quot;external_unchanged&quot;: {
+      &quot;n&quot;: 1835,
+      &quot;before&quot;: 490,
+      &quot;after&quot;: 496,
+      &quot;lost&quot;: 106,
+      &quot;gained&quot;: 112,
+      &quot;delta&quot;: 0.0032697547683923707,
+      &quot;ci&quot;: [
+        -0.011989100817438692,
+        0.01907356948228883
+      ],
+      &quot;p&quot;: 0.7349658822561247,
+      &quot;information&quot;: &quot;available&quot;
+    },
+    &quot;target_model_unchanged&quot;: {
+      &quot;n&quot;: 1835,
+      &quot;before&quot;: 490,
+      &quot;after&quot;: 379,
+      &quot;lost&quot;: 223,
+      &quot;gained&quot;: 112,
+      &quot;delta&quot;: -0.060490463215258854,
+      &quot;ci&quot;: [
+        -0.07956403269754768,
+        -0.040326975476839236
+      ],
+      &quot;p&quot;: 1.3227479666921482e-09,
+      &quot;information&quot;: &quot;available&quot;
+    }
+  },
+  &quot;alpha&quot;: 0.05,
+  &quot;bootstrap&quot;: 5000,
+  &quot;seed&quot;: 20260827,
+  &quot;method&quot;: &quot;Paired APP_ID percentile bootstrap; exact McNemar; Holm within configured families&quot;,
+  &quot;interpretation&quot;: &quot;Исторический парный набор, не рандомизированный A/B-тест. Интервалы применимы к будущему потоку при репрезентативности и независимости заявок. Смена внешних данных смешивает факторы; причинность не установлена.&quot;
+}</pre>
+    <p>scoring.pd — APPROVAL_PROBABILITY. PD дефолта, лимиты и деньги недоступны без дополнительных данных.
+    Совпадение изменений не доказывает причинность. Срабатывания проверок приведены в исходной формулировке их авторов.
+    У APP_IDS проверок может быть показана только первая часть списка; полный переход доступен из сводной.</p></html>

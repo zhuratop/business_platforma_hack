@@ -1,0 +1,8 @@
+{
+  "previous_seconds": 44.272747299983166,
+  "current_seconds": 9.77719779999461,
+  "speedup": 4.528163202344906,
+  "files": 4005,
+  "checksum": "90ed8496c129522a3dda44e99223145d20aa816d677e2e97c76de48d69a5e13b",
+  "method": "Same process, sequential previous then current, one repeat. Prior: validate/copy2/validate. Current: same bytes validate/hash/write once. No OS-cache reset."
+}

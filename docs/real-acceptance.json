@@ -1,0 +1,11 @@
+{
+  "passed": true,
+  "run_id": "72a89d51382d6a25e96c3998",
+  "paired_apps": 2002,
+  "changed_apps": 502,
+  "comparison_rows": 289533,
+  "duplicate_offer_product_responses": 25,
+  "null_rule_hits": 1026,
+  "check_rows": 52,
+  "p": 1.254165079861648e-16
+}

@@ -1,0 +1,91 @@
+{
+  "run_id": "72a89d51382d6a25e96c3998",
+  "date": "2026-11-06T22:31:04.137833+00:00",
+  "machine": {
+    "os": "Windows-10-10.0.19045-SP0",
+    "cpu": "Intel64 Family 6 Model 154 Stepping 3, GenuineIntel",
+    "logical_cpus": 16,
+    "ram_mib": 8192,
+    "python": "3.11.0"
+  },
+  "table_counts": {
+    "normalized_union": 572221,
+    "comparison_mart": 289533,
+    "app_segments": 2002,
+    "product_trials": 9376,
+    "offers": 2732,
+    "pivot_facts": 84393,
+    "fact_memberships": 572221
+  },
+  "partners": [
+    {
+      "partner_id": "1233"
+    },
+    {
+      "partner_id": "1450"
+    },
+    {
+      "partner_id": "1602"
+    },
+    {
+      "partner_id": "1777"
+    },
+    {
+      "partner_id": "1901"
+    }
+  ],
+  "processing_seconds": 90.7698,
+  "stages": {
+    "startup": 0.0708,
+    "NORMALIZING": 48.5913,
+    "COMPARING": 16.9541,
+    "FACTS": 22.7016,
+    "CHECKS": 0.6084,
+    "STATS": 1.8222,
+    "REPORTING": 0.0215
+  },
+  "http": {
+    "ready_report": {
+      "first_ms": 13.541,
+      "median_ms": 14.083,
+      "max_ms": 15.949,
+      "n": 10
+    },
+    "first_pivot": {
+      "first_ms": 81.622,
+      "median_ms": 90.421,
+      "max_ms": 143.653,
+      "n": 10
+    },
+    "change_layout": {
+      "first_ms": 70.814,
+      "median_ms": 64.121,
+      "max_ms": 105.288,
+      "n": 10
+    },
+    "filter": {
+      "first_ms": 75.425,
+      "median_ms": 64.353,
+      "max_ms": 88.88,
+      "n": 10
+    },
+    "cell_apps": {
+      "first_ms": 64.864,
+      "median_ms": 67.858,
+      "max_ms": 79.269,
+      "n": 10
+    },
+    "application": {
+      "first_ms": 102.027,
+      "median_ms": 89.121,
+      "max_ms": 113.171,
+      "n": 10
+    },
+    "html": {
+      "first_ms": 18.244,
+      "median_ms": 17.3,
+      "max_ms": 18.9,
+      "n": 10
+    }
+  }
+}

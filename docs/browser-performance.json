@@ -1,0 +1,13 @@
+{
+  "run_id": "72a89d51382d6a25e96c3998",
+  "times": {
+    "report_open_ms": 593.2198000000001,
+    "first_pivot_ms": 164.9112,
+    "change_layout_ms": 133.8685999999998,
+    "filter_ms": 100.7536,
+    "application_ms": 166.79749999999967,
+    "report_reopen_ms": 72.33860000000004
+  },
+  "date": "2026-11-06T22:37:38.169Z",
+  "method": "Edge headless 1512x1000, timings include click, HTTP where applicable and visible DOM, one repetition"
+}
