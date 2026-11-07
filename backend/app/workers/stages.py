@@ -6,9 +6,10 @@ from backend.app.storage import meta
 from backend.app.storage.mart import MartAPI, write, indexes
 from backend.app.core import importer
 from backend.app.core.execution import compile_script
+from backend.app.plugins.defaults import DEFAULT_BATCH_PAIRS
 
 
-def saved_pairs(con, batch_pairs=25):
+def saved_pairs(con, batch_pairs=DEFAULT_BATCH_PAIRS):
     cursor = con.cursor()
     try:
         cursor.execute('SELECT APP_ID,BEFORE_JSON,AFTER_JSON FROM raw_inputs ORDER BY APP_ID')

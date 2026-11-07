@@ -30,7 +30,7 @@ test('mixed-format ZIP reaches a worker-built report through the interface',asyn
  delete config.id;
  config.name='JSON / XML / CSV · 4 пары';
  config.params.stats.bootstrap=100;
- config.params.processing={batch_pairs:1};
+ config.params.processing={batch_pairs:200};
  const saved=await context.request.post('/api/configs',{data:config});expect(saved.ok()).toBeTruthy();
  const configId=(await saved.json()).data.id;
  await page.goto('/?tab=datasets');

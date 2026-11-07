@@ -1,0 +1,50 @@
+name: spr-analysis
+
+x-app: &app
+  image: spr-analysis:local
+  build:
+    context: .
+    dockerfile: Dockerfile
+  init: true
+  restart: unless-stopped
+  environment: &environment
+    SPR_RUNTIME: /app/runtime
+    SPR_DATA_ROOT: /input
+    SPR_WORKERS: ${SPR_WORKERS:-10}
+    SPR_DUCKDB_THREADS: ${SPR_DUCKDB_THREADS:-2}
+    SPR_JOB_TIMEOUT: ${SPR_JOB_TIMEOUT:-600}
+    SPR_DEMO_PASSWORD: ${SPR_DEMO_PASSWORD:-demo}
+    PUBLIC_BASE_URL: ${SPR_PUBLIC_BASE_URL:-http://localhost:8000}
+    OPENBLAS_NUM_THREADS: "1"
+    OMP_NUM_THREADS: "1"
+    MKL_NUM_THREADS: "1"
+  volumes:
+    - runtime:/app/runtime
+    - type: bind
+      source: ${SPR_DATA_DIR:-./data}
+      target: /input/data
+      read_only: true
+  stop_grace_period: 30s
+
+services:
+  api:
+    <<: *app
+    ports:
+      - "${SPR_BIND_ADDRESS:-127.0.0.1}:${SPR_PORT:-8000}:8000"
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/api/health', timeout=2).read()"]
+      interval: 5s
+      timeout: 3s
+      start_period: 10s
+      retries: 10
+
+  worker:
+    <<: *app
+    command: ["python", "-m", "backend.app.workers.main"]
+    stop_signal: SIGINT
+    depends_on:
+      api:
+        condition: service_healthy
+
+volumes:
+  runtime:

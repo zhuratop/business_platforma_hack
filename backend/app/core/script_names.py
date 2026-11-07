@@ -41,7 +41,7 @@ def named_scripts(scripts):
             row['check_id'] = metadata.get('id')
             generic = bool(re.match(r'^Моя проверка(?:\b|\.)',row.get('name',''),re.I))
             known = CHECK_NAMES.get(metadata.get('id'))
-            share_variant = bool(re.fullmatch(r'my_changes(?:_\d+)?',metadata.get('id') or ''))
+            share_variant = bool(re.fullmatch(r'my_changes(?:_[a-zA-Z0-9_]+)?',metadata.get('id') or ''))
             if share_variant:
                 defaults=static_definition(row.get('code','')).get('params',{})
                 limit=row.get('params',{}).get('max_share',defaults.get('max_share',.3))

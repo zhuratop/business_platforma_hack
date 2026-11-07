@@ -1,6 +1,6 @@
 param(
     [switch]$Lan,
-    [ValidateRange(1,8)][int]$Workers = 2,
+    [ValidateRange(1,10)][int]$Workers = 10,
     [ValidateRange(1,65535)][int]$Port = 8000,
     [string]$PublicBaseUrl = ''
 )

@@ -7,3 +7,4 @@
 
 /* Four configurable input processing stages. */
 .procedure-flow{flex-wrap:wrap}.procedure{min-width:170px;flex:1}.procedure select{width:100%;min-width:0}
+.check-options .check-delete,.editor-panel .check-delete{color:#a16b53}.check-options .check-delete:hover,.editor-panel .check-delete:hover{color:#914126;background:#fff3eb}.check-options .check-delete{flex-shrink:0;padding:6px}

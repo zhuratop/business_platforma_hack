@@ -35,7 +35,8 @@ def test_report_full_tree_unique_counts_typed_values_checks_and_escaping():
     assert 'id="pivot"' in content and 'id="checks"' in content
     assert 'id="statistics"' not in content and 'id="comparability"' not in content
     assert 'strategy-table' not in content and 'attribute-table' in content
-    assert content.count('DIFF_FLAG = 0')==2 and content.count('DIFF_FLAG = 1')==2
+    header=content.split('<thead>',1)[1].split('</thead>',1)[0]
+    assert header.count('DIFF_FLAG = 0')==2 and header.count('DIFF_FLAG = 1')==2
     assert '<link' not in content and 'fetch(' not in content
 
 

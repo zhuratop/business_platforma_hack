@@ -72,7 +72,32 @@ def get(table,id,owner=None):
 def listing(table,owner,limit=100,offset=0):
     assert table in TABLES
     with db() as c:
-        return [json.loads(r[0]) for r in c.execute(f'SELECT payload FROM {table} WHERE owner_id=? ORDER BY created DESC LIMIT ? OFFSET ?',(owner,limit,offset))]
+        active=" AND status<>'DELETED'" if table=='scripts' else ''
+        return [json.loads(r[0]) for r in c.execute(f'SELECT payload FROM {table} WHERE owner_id=?{active} ORDER BY created DESC LIMIT ? OFFSET ?',(owner,limit,offset))]
+
+
+def delete_check(owner,id):
+    """Remove a live check and its config selections; retain frozen run inputs."""
+    with db() as c:
+        c.execute('BEGIN IMMEDIATE')
+        row=c.execute('SELECT payload FROM scripts WHERE id=? AND owner_id=?',(id,owner)).fetchone()
+        if row is None:
+            raise KeyError(id)
+        script=json.loads(row[0])
+        if script['kind']!='check':
+            raise ValueError('Удалять здесь можно только автоматические проверки')
+        if script['status']=='DELETED':
+            return dict(deleted=True,updated_configs=0)
+        script.update(status='DELETED',deleted_at=now())
+        c.execute("UPDATE scripts SET status='DELETED',payload=? WHERE id=?",(json.dumps(script,ensure_ascii=False),id))
+        changed=0
+        for row in c.execute('SELECT id,payload FROM configs WHERE owner_id=?',(owner,)).fetchall():
+            config=json.loads(row['payload'])
+            if id in config.get('checks',[]):
+                config['checks']=[sid for sid in config['checks'] if sid!=id]
+                c.execute('UPDATE configs SET payload=? WHERE id=?',(json.dumps(config,ensure_ascii=False),row['id']))
+                changed+=1
+        return dict(deleted=True,updated_configs=changed)
 
 def dataset_listing(owner,limit=100,offset=0):
     """One visible snapshot per checksum, before pagination; older IDs stay readable."""

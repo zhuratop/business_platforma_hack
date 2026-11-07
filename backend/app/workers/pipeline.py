@@ -12,6 +12,7 @@ from backend.app.core.execution import run_checks
 from backend.app.core.report import render
 from backend.app.stats.paired import calculate, decision
 from backend.app.workers import stages
+from backend.app.plugins.defaults import DEFAULT_BATCH_PAIRS
 
 DB_STAGES = dict(READING=stages.reading, NORMALIZING=stages.normalizing, COMPARING=stages.comparing, FACTS=stages.facts_stage)
 KINDS = dict(READING='reader', NORMALIZING='normalize', COMPARING='compare', FACTS='facts')
@@ -24,7 +25,7 @@ def full_run(id):
     dataset = meta.get('datasets', run['dataset_id'], run['owner_id'])
     config, snaps = run['config'], run['snapshots']
     params = config.get('params', {})
-    batch_pairs = params.get('processing', {}).get('batch_pairs', 25)
+    batch_pairs = params.get('processing', {}).get('batch_pairs', DEFAULT_BATCH_PAIRS)
     if type(batch_pairs) is not int or not 1 <= batch_pairs <= 500:
         raise ValueError('processing.batch_pairs must be an integer from 1 to 500')
     target = stop_stage(run.get('stop_after', 'REPORTING'))

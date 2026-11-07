@@ -66,10 +66,10 @@ def supervise(workers, stop=None):
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('--job', nargs=2)
-    parser.add_argument('--workers', type=int, default=int(os.environ.get('SPR_WORKERS', '2')))
+    parser.add_argument('--workers', type=int, default=int(os.environ.get('SPR_WORKERS', '10')))
     args = parser.parse_args()
-    if not 1 <= args.workers <= 8:
-        parser.error('--workers must be between 1 and 8')
+    if not 1 <= args.workers <= 10:
+        parser.error('--workers must be between 1 and 10')
     meta.init()
     if args.job:
         from backend.app.workers.jobs import execute

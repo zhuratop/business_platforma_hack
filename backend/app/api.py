@@ -17,6 +17,7 @@ from backend.app.storage.mart import MartAPI
 from backend.app.core import importer,pivot
 from backend.app.core.attribute_tree import TreeRequest
 from backend.app.core.execution import seed,snapshots,ensure_reader
+from backend.app.plugins.defaults import DEFAULT_BATCH_PAIRS
 from backend.app.domain.contracts import PivotRequest,DIMENSIONS,DIMENSION_GROUPS,DIMENSION_LABELS
 
 @asynccontextmanager
@@ -72,6 +73,13 @@ def public_run(run):
     result = {k:v for k,v in run.items() if k not in ['snapshots','stats','checks','summary','mart_path','owner_id','checkpoints']}
     result['checkpoints'] = [{k:v for k,v in point.items() if k!='path'} for point in run.get('checkpoints',[])]
     return result
+
+
+def owned_script(id,owner):
+    script=meta.get('scripts',id,owner)
+    if script['status']=='DELETED':
+        raise HTTPException(404,'Проверка удалена')
+    return script
 
 def current_scripts(owner):
     scripts = meta.listing('scripts',owner)
@@ -159,7 +167,7 @@ def save_script(body:dict=Body(...),u=Depends(user)):
     if body.get('kind') not in ['reader','normalize','compare','facts','check'] or body.get('source') not in ['editor','file']:
         raise ValueError('Invalid script kind/source')
     if body.get('id'):
-        meta.get('scripts',body['id'],u['id'])
+        owned_script(body['id'],u['id'])
     payload = {k:body.get(k) for k in ['name','kind','source','code','path']}
     payload['params'] = body.get('params',{})
     if not isinstance(payload['params'],dict) or not payload['name']:
@@ -175,6 +183,11 @@ def save_script(body:dict=Body(...),u=Depends(user)):
     s = meta.put('scripts',u['id'],payload,id=body.get('id'))
     s['hash'] = hashlib.sha256(s['code'].encode()).hexdigest()
     return ok(s,s['id'])
+
+
+@app.delete('/api/scripts/{id}')
+def delete_check(id:str,u=Depends(user)):
+    return ok(meta.delete_check(u['id'],id),id)
 
 @app.post('/api/scripts/upload')
 def upload_script(file:UploadFile=File(...),kind:str='check',u=Depends(user)):
@@ -194,7 +207,7 @@ def upload_script(file:UploadFile=File(...),kind:str='check',u=Depends(user)):
 @app.post('/api/scripts/validate')
 def validate_script(body:dict=Body(...),u=Depends(user)):
     if body.get('script_id'):
-        meta.get('scripts',body['script_id'],u['id'])
+        owned_script(body['script_id'],u['id'])
         s = next(s for s in current_scripts(u['id']) if s['id']==body['script_id'])
     else:
         s = body['script']
@@ -226,16 +239,25 @@ def config(body:dict=Body(...),u=Depends(user)):
     if 'reader' not in body['stages']:
         body['stages']['reader'] = ensure_reader(u['id'])
     for kind in ['reader','normalize','compare','facts']:
-        s = meta.get('scripts',body['stages'][kind],u['id'])
+        s = owned_script(body['stages'][kind],u['id'])
         if s['kind']!=kind:
             raise ValueError('Script kind mismatch')
+    from backend.app.core.script_names import check_metadata
+    seen_checks=set()
     for id in body.get('checks',[]):
-        if meta.get('scripts',id,u['id'])['kind']!='check':
+        script=owned_script(id,u['id'])
+        if script['kind']!='check':
             raise ValueError('Expected check script')
+        code=Path(script['path']).read_text(encoding='utf-8-sig') if script['source']=='file' else script['code']
+        check_id=check_metadata(code).get('id')
+        if check_id and check_id in seen_checks:
+            raise ValueError(f'В конфигурации уже выбрана проверка с CHECK.id={check_id}. Выберите одну версию или измените CHECK.id в коде.')
+        if check_id:
+            seen_checks.add(check_id)
     for v in body.get('params',{}).get('thresholds',{}).values():
         if v is not None and (not isinstance(v,(int,float)) or v<0):
             raise ValueError('Thresholds must be non-negative or null')
-    batch_pairs = body.get('params',{}).get('processing',{}).get('batch_pairs',25)
+    batch_pairs = body.get('params',{}).get('processing',{}).get('batch_pairs',DEFAULT_BATCH_PAIRS)
     if type(batch_pairs) is not int or not 1 <= batch_pairs <= 500:
         raise ValueError('processing.batch_pairs must be an integer from 1 to 500')
     obj = meta.put('configs',u['id'],dict(name=body['name'],stages=body['stages'],checks=body.get('checks',[]),params=body.get('params',{}),stop_after=target),id=body.get('id'))

@@ -58,6 +58,8 @@ def snapshots(owner,config):
     result = {}
     for id in list(config['stages'].values())+config.get('checks',[]):
         s = meta.get('scripts',id,owner)
+        if s['status']=='DELETED':
+            raise ValueError('Удалённую проверку нельзя включить в новый прогон')
         if s['source']=='file':
             path = Path(s['path']).resolve()
             if path.suffix!='.py' or not any(path.is_relative_to(root) for root in [ROOT/'scripts',meta.RUNTIME/'scripts',meta.DATA_ROOT/'checks']):
