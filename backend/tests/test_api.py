@@ -140,7 +140,7 @@ def test_check_files_unchanged_and_report_link(env):
     assert response.status_code==200
     assert 'attachment' in response.headers['content-disposition']
     assert 'http://testserver/?run='+rid+'&amp;tab=pivot' in response.text
-    assert 'Вероятность одобрения' in response.text
+    assert 'Результаты автопроверок' in response.text
 
 def test_snapshot_codes_immutable_and_no_partial_summary(env):
     alice,_,ds,cfg,_=env

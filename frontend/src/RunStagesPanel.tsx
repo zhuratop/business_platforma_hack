@@ -11,16 +11,29 @@ export function StopStageSelect({value,onChange,after=-1}:{value:string;onChange
 export function RunStagesPanel({run,busy,onResume}:{run:Run|null;busy:boolean;onResume:(stage:string)=>Promise<void>}){
  const [target,setTarget]=useState('REPORTING');
  const [preview,setPreview]=useState<any>(null),[table,setTable]=useState('raw_inputs'),[error,setError]=useState(''),[loading,setLoading]=useState(false);
+ const [result,setResult]=useState<{runId:string;changed:number;total:number}|null>(null),[resultError,setResultError]=useState(''),[resultRetry,setResultRetry]=useState(0);
  const points=run?.checkpoints||[];
  const last=points.at(-1)?.stage;
  const complete=run?.status==='READY'?6:pipelineStages.findIndex(([id])=>id===run?.completed_stage);
  useEffect(()=>{setTarget('REPORTING')},[run?.id,complete]);
+ useEffect(()=>{
+  setResult(null);setResultError('');
+  if(!run?.id||run.status!=='READY')return;
+  const id=run.id;let active=true;
+  api<{changed_apps:number;total_apps:number}>('/runs/'+id+'/summary').then(data=>{
+   if(active)setResult({runId:id,changed:data.changed_apps,total:data.total_apps});
+  }).catch(e=>{if(active)setResultError(e.message)});
+  return()=>{active=false};
+ },[run?.id,run?.status,resultRetry]);
  useEffect(()=>{setPreview(null);setTable('raw_inputs');setError('')},[run?.id]);
  useEffect(()=>{if(!run?.id||!last)return;let active=true;setLoading(true);setError('');api('/runs/'+run.id+'/preview?table='+encodeURIComponent(table)+'&limit=10').then(data=>{if(active)setPreview(data)}).catch(e=>{if(active)setError(e.message)}).finally(()=>{if(active)setLoading(false)});return()=>{active=false}},[run?.id,last,table]);
  if(!run)return <section className="panel"><h2>Выполнение прогона</h2><p>Выберите конфигурацию и запустите задачу.</p></section>;
  const resumable=['PAUSED','FAILED'].includes(run.status)&&complete<6;
  return <section className="panel run-stages"><div className="panel-heading"><h2>Выполнение прогона</h2><span className="tag">{run.status==='PAUSED'?'Сохранён, ожидает продолжения':run.status}</span><span className="muted mono">{run.id}</span></div>
  <ol className="stage-track">{pipelineStages.map(([id,label],i)=><li key={id} className={i<=complete?'complete':run.status===id?'running':''}><span>{i<=complete?'✓':i+1}</span><b>{label}</b><small>{i<=complete?'Сохранено':run.status===id?'Выполняется':'Ожидает'}</small></li>)}</ol>
+ {run.status==='READY'&&<div className="run-changed-result" role="status">
+  {result?.runId===run.id?<><span>Заявок с различиями</span><strong data-testid="changed-apps-count">{result.changed.toLocaleString('ru-RU')} <small>из {result.total.toLocaleString('ru-RU')}</small></strong><p>Уникальные заявки с любыми изменениями атрибутов, включая заявки со сменой решения. Каждая заявка учитывается один раз.</p></>:resultError?<><p>Не удалось загрузить итог: {resultError}</p><button className="link" onClick={()=>setResultRetry(v=>v+1)}>Повторить загрузку итога</button></>:<p>Загружаем итог обработки…</p>}
+ </div>}
  {run.error&&<p className="error">{run.error}</p>}
  <p className="muted">Этапы выполняются последовательно. Каждый завершённый этап сохраняется отдельно. Другие прогоны могут выполняться параллельно.</p>
  {resumable&&<div className="resume-controls"><StopStageSelect value={target} onChange={setTarget} after={complete}/><button className="primary" disabled={busy} onClick={()=>void onResume(target)}>{run.status==='FAILED'?'Повторить незавершённый этап и продолжить':'Продолжить прогон'}</button><small>Используются исходные код и настройки этого прогона. Для других настроек создайте новый запуск.</small></div>}

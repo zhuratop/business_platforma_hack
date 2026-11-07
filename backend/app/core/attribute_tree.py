@@ -51,12 +51,22 @@ def cells(run_id,spec,counts):
         if source!='TOTAL':dimensions['SOURCE']=source
         result[source]=dict(dimensions=dimensions,count=count,
                             cell_token=token(run_id,{'__tree':{**spec,'filters':filters}}))
+    for (source,flag),count in zip([('BEFORE',0),('BEFORE',1),('AFTER',0),('AFTER',1)],counts[3:]):
+        filters={**spec.get('filters',{}),'SOURCE':[source],'DIFF_FLAG':[flag]}
+        dimensions={**result[source]['dimensions'],'DIFF_FLAG':flag}
+        result[f'{source}_{flag}']=dict(dimensions=dimensions,count=count,
+            cell_token=token(run_id,{'__tree':{**spec,'filters':filters}}))
     return result
 
 
 COUNTS="""count(DISTINCT APP_ID) FILTER(WHERE SOURCE='BEFORE') AS before_count,
     count(DISTINCT APP_ID) FILTER(WHERE SOURCE='AFTER') AS after_count,
     count(DISTINCT APP_ID) AS total_count"""
+COUNT_FIELDS=['before_count','after_count','total_count','before_same_count','before_diff_count','after_same_count','after_diff_count']
+TREE_COUNTS=COUNTS+""",count(DISTINCT APP_ID) FILTER(WHERE SOURCE='BEFORE' AND DIFF_FLAG=0) AS before_same_count,
+    count(DISTINCT APP_ID) FILTER(WHERE SOURCE='BEFORE' AND DIFF_FLAG=1) AS before_diff_count,
+    count(DISTINCT APP_ID) FILTER(WHERE SOURCE='AFTER' AND DIFF_FLAG=0) AS after_same_count,
+    count(DISTINCT APP_ID) FILTER(WHERE SOURCE='AFTER' AND DIFF_FLAG=1) AS after_diff_count"""
 
 
 def children(con,run_id,request):
@@ -68,14 +78,14 @@ def children(con,run_id,request):
         # in other JSON responses, preserving changes of JSON shape.
         depth=len(request.path.split('.'))+1 if request.path else 1
         group_sql=f'''SELECT CASE WHEN PATH=? THEN '' ELSE split_part(PATH,'.',{depth}) END AS component,
-            {COUNTS},bool_or(ARRAY_KEY<>'') AS arrays
+            {TREE_COUNTS},bool_or(ARRAY_KEY<>'') AS arrays
             FROM scoped GROUP BY component'''
         query_args=args+[request.path]
     elif request.stage=='keys':
-        group_sql=f'SELECT ARRAY_KEY AS component,{COUNTS} FROM scoped GROUP BY ARRAY_KEY'
+        group_sql=f'SELECT ARRAY_KEY AS component,{TREE_COUNTS} FROM scoped GROUP BY ARRAY_KEY'
         query_args=args
     else:
-        group_sql=f'SELECT ADJUSTED_VALUE AS component,VALUE_KIND AS value_kind,{COUNTS} FROM scoped GROUP BY ADJUSTED_VALUE,VALUE_KIND'
+        group_sql=f'SELECT ADJUSTED_VALUE AS component,VALUE_KIND AS value_kind,{TREE_COUNTS} FROM scoped GROUP BY ADJUSTED_VALUE,VALUE_KIND'
         query_args=args
     grouped=prefix+', grouped AS ('+group_sql+') '
     order='component,value_kind' if request.stage=='values' else 'component'
@@ -112,8 +122,8 @@ def children(con,run_id,request):
         identity=dict(path=path,kind=kind,stage=request.stage,component=component,array_key=child_spec.get('array_key'),value_kind=row.get('value_kind'))
         nodes.append(dict(id=json.dumps(identity,sort_keys=True,ensure_ascii=False),path=path,label=label,kind=kind,
             value_kind=row.get('value_kind'),has_children=next_request is not None,request=next_request,
-            cells=cells(run_id,child_spec,[row['before_count'],row['after_count'],row['total_count']])))
-    totals=con.execute(prefix+'SELECT '+COUNTS+' FROM scoped',args).fetchone()
+            cells=cells(run_id,child_spec,[row[field] for field in COUNT_FIELDS])))
+    totals=con.execute(prefix+'SELECT '+TREE_COUNTS+' FROM scoped',args).fetchone()
     return dict(nodes=nodes,totals=cells(run_id,spec,totals),
                 pagination=dict(page=request.page,page_size=request.page_size,total_nodes=total_nodes,
                                 has_more=request.page*request.page_size<total_nodes),

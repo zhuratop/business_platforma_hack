@@ -1,14 +1,15 @@
-"""Standalone statistics and strategy pivot, using the same facts as the UI."""
+"""Self-contained full attribute pivot and saved check results."""
 import html
+import json
 import math
+import re
 from pathlib import Path
 
 import duckdb
 
-from backend.app.core.pivot import relation, where
+from backend.app.core.attribute_tree import TREE_COUNTS
+from backend.app.core.check_display import with_thresholds
 from backend.app.storage import meta
-from scripts.default_spr.pivot_views import VIEWS
-from scripts.default_spr.stat_display import display_stats
 
 
 def esc(value):
@@ -22,132 +23,162 @@ def number(value):
 
 
 def percent(value):
-    return number(value * 100) + '%' if isinstance(value, (int, float)) and math.isfinite(value) else '—'
+    return f'{value * 100:.1f}%' if type(value) in (int, float) and math.isfinite(value) else '—'
 
 
-def points(value):
-    return number(value * 100) + ' п.п.' if isinstance(value, (int, float)) and math.isfinite(value) else '—'
+def short_text(value,limit=90):
+    text=' '.join(str(value).split())
+    return text[:limit-1].rstrip()+'…' if len(text)>limit else text
 
 
-def pvalue(value):
-    return f'{value:.3e}' if isinstance(value, (int, float)) and 0 < value < .0001 else number(value)
+def short_argument(text):
+    sides=re.split(r'\s+(?:->|→)\s+',text)
+    if len(sides)==2:
+        groups=[[item.strip() for item in side.split(';')] for side in sides]
+        if all(all(re.fullmatch(r'\d+:.+',item) for item in group) for group in groups):
+            models=[set(item.split(':',1)[1] for item in group) for group in groups]
+            if all(len(group)==1 for group in models):
+                n=len({item.split(':',1)[0] for group in groups for item in group})
+                word='продукт' if n%10==1 and n%100!=11 else 'продукта' if 2<=n%10<=4 and not 12<=n%100<=14 else 'продуктов'
+                return f'{short_text(next(iter(models[0])),36)} → {short_text(next(iter(models[1])),36)} · {n} {word}'
+        return ' → '.join(short_text(side,42) for side in sides)
+    return short_text(text)
 
 
-def interval(values, percentage=True):
-    return ' … '.join((points if percentage else number)(v) for v in values) if values and len(values) == 2 else '—'
+def tree_data(con):
+    """Same distinct application counts and typed buckets as the unfiltered UI.
 
-
-def strategy_data(con):
-    """Unpaginated strategy preset; count distinct APP_ID, never sum facts."""
-    view = next(v for v in VIEWS if v['id'] == 'strategy')
-    dimensions = view['rows'] + view['columns']
-    columns = ','.join('f."' + d + '"' for d in dimensions)
-    clause, args = where(view['filters'])
-    prefix = relation(dimensions + list(view['filters']))
-    rows = con.execute(prefix + 'SELECT ' + columns + ',count(DISTINCT f.APP_ID) FROM scoped f' + clause + ' GROUP BY ' + columns + ' ORDER BY ' + columns, args).fetchall()
-    totals = con.execute(prefix + 'SELECT f.DIFF_FLAG,f.SOURCE,count(DISTINCT f.APP_ID) FROM scoped f' + clause + ' GROUP BY f.DIFF_FLAG,f.SOURCE', args).fetchall()
-    unique = con.execute(prefix + 'SELECT count(DISTINCT f.APP_ID) FROM scoped f' + clause, args).fetchone()[0]
-    return view['rows'], rows, {(flag, source): count for flag, source, count in totals}, unique
-
-
-def stat_card(title, stat, confidence, percentage=True):
-    fmt = points if percentage else number
-    baseline_fmt = percent if percentage else number
-    baseline = stat.get('baseline', {}) if percentage else stat
-    before_after = ''
-    if baseline.get('before') is not None and baseline.get('after') is not None:
-        before_after = f'<div class="before-after">BEFORE <b>{baseline_fmt(baseline["before"])}</b><span>→</span>AFTER <b>{baseline_fmt(baseline["after"])}</b></div>'
-    details = f'Пар заявок: {number(stat.get("n"))}'
-    if 'p' in stat:
-        details += ' · p-value: ' + pvalue(stat['p'])
-    if 'lost' in stat:
-        details += f'<br>Потеряно одобрений: {number(stat["lost"])} · новых: {number(stat["gained"])}'
-    if stat.get('information') == 'insufficient':
-        details += '<br>Недостаточно информации для вывода'
-    return f'<article class="metric"><h3>{esc(title)}</h3><div class="delta">{fmt(stat.get("delta"))}</div><div class="unit">{"Изменение AFTER − BEFORE" if percentage else "продукта / заявку"}</div><p>CI {confidence}% <strong>{interval(stat.get("ci"), percentage)}</strong></p>{before_after}<small>{details}</small></article>'
-
-
-def bureau_card(field, stat):
-    title = 'Средний скор Эквифакс у одобренных' if field == 'score_equ' else 'Средний скор ОКБ у одобренных'
-    test = stat['t_test']
-    if test['status'] == 'available':
-        status = 'различие статистически значимо' if test['significant'] else 'статистическая значимость не выявлена'
-        significance = f'<p><strong>T-тест: {status}</strong></p><small>p-value (Холм) = {pvalue(test["p_adjusted"])} · α = {number(test["alpha"])}</small>'
-    else:
-        significance = '<p><strong>T-тест: недоступно</strong></p><small>Недостаточно наблюдений или разброса для расчёта.</small>'
-    return f'''<article class="metric" data-bureau="{field}"><h3>{title}</h3><small>{field} · баллы бюро</small>
-        <div class="before-after">BEFORE <b>{number(stat['before']['mean'])}</b><span>→</span>AFTER <b>{number(stat['after']['mean'])}</b></div>
-        <p>Разница средних одобренных: <strong>{number(stat['delta'])} балла</strong></p>
-        <small>Со скором BEFORE: {number(stat['before']['n'])} / {number(stat['before']['approved_total'])} одобренных; без скора {number(stat['before']['missing'])}.<br>
-        Со скором AFTER: {number(stat['after']['n'])} / {number(stat['after']['approved_total'])} одобренных; без скора {number(stat['after']['missing'])}.</small>
-        {significance}</article>'''
-
-
-def family_table(rows, confidence):
-    title = 'Продукты (компании)'
-    body = []
-    for row in rows:
-        n = row['n']
-        name = esc(row['group_name'])
-        if not row['name_available']:
-            name += '<small>Название отсутствует в данных</small>'
-        coverage = row.get('coverage', {})
-        name += f'<small>Присутствует в срезах: {number(coverage.get("BEFORE", 0))} → {number(coverage.get("AFTER", 0))}</small>'
-        if row.get('appeared', 0) or row.get('disappeared', 0):
-            name += f'<small>Появились: {number(row.get("appeared", 0))} · исчезли: {number(row.get("disappeared", 0))}</small>'
-        approval = lambda key: (percent(row[key] / n) if n else '—') + f'<small>{number(row[key])} / {number(n)}</small>'
-        values = [name, number(n), approval('before'), approval('after'), points(row.get('delta')), interval(row.get('ci')), pvalue(row.get('p')) if n else '—', pvalue(row.get('p_adjusted')) if n else '—', 'Недостаточно' if row.get('information') == 'insufficient' else 'Достаточно']
-        body.append('<tr>' + ''.join('<td>' + v + '</td>' for v in values) + '</tr>')
-    headers = ['Продукт (компания)', 'Пар заявок', 'Одобрено BEFORE, %', 'Одобрено AFTER, %', 'Разница, п.п.', f'CI {confidence}%, п.п.', 'p-value', 'p Холма', 'Данные']
-    return f'<h3>{title}</h3><div class="table-scroll"><table class="family-table"><thead><tr>{"".join("<th>"+esc(h)+"</th>" for h in headers)}</tr></thead><tbody>{"".join(body)}</tbody></table></div>' if rows else f'<h3>{title}</h3><p>Группы не заданы в конфигурации.</p>'
+    Compute parent counts from applications, never by summing child counts.
+    All levels and values are exported without API pagination.
+    """
+    prefix='WITH scoped AS (SELECT n.*,c.DIFF_FLAG FROM normalized_union n JOIN comparison_mart c USING(APP_ID,PATH,ARRAY_KEY)) '
+    paths = con.execute(prefix+''', expanded AS (
+        SELECT APP_ID,SOURCE,DIFF_FLAG,array_to_string(list_slice(string_split(PATH,'.'),1,depth),'.') AS NODE_PATH
+        FROM scoped CROSS JOIN UNNEST(range(1,len(string_split(PATH,'.'))+1)) AS parts(depth))
+        SELECT NODE_PATH,''' + TREE_COUNTS + ' FROM expanded GROUP BY NODE_PATH ORDER BY NODE_PATH').fetchall()
+    roots, nodes = [], {}
+    for path, *counts in paths:
+        node = dict(label=path.rsplit('.', 1)[-1],path=path,kind='path',counts=counts,children=[])
+        nodes[path] = node
+        parent = path.rsplit('.', 1)[0] if '.' in path else None
+        (nodes[parent]['children'] if parent else roots).append(node)
+    key_counts = con.execute(prefix+'SELECT PATH,ARRAY_KEY,' + TREE_COUNTS +
+        ' FROM scoped GROUP BY PATH,ARRAY_KEY ORDER BY PATH,ARRAY_KEY').fetchall()
+    keyed_paths = {path for path, key, *_ in key_counts if key}
+    keys = {}
+    for path, key, *counts in key_counts:
+        if path in keyed_paths:
+            node = dict(label=key or 'Без ключа массива',path=path,kind='array',counts=counts,children=[])
+            keys[path,key] = node
+            nodes[path]['children'].append(node)
+    values = con.execute(prefix+'SELECT PATH,ARRAY_KEY,VALUE_KIND,ADJUSTED_VALUE,' + TREE_COUNTS +
+        ' FROM scoped GROUP BY PATH,ARRAY_KEY,VALUE_KIND,ADJUSTED_VALUE ORDER BY PATH,ARRAY_KEY,VALUE_KIND,ADJUSTED_VALUE').fetchall()
+    for path, key, kind, value, *counts in values:
+        label = 'null' if kind == 'null' else json.dumps(value,ensure_ascii=False) if kind == 'string' else str(value)
+        parent = keys[path,key] if path in keyed_paths else nodes[path]
+        parent['children'].append(dict(label=label,path=path,kind='value',value_kind=kind,counts=counts,children=[]))
+    totals = con.execute(prefix+'SELECT ' + TREE_COUNTS + ' FROM scoped').fetchone()
+    return roots, totals
 
 
 def pivot_table(con):
-    from scripts.default_spr.pivot_views import STRATEGY_FIELDS
-    view = next(v for v in VIEWS if v['id'] == 'strategy')
-    clause, args = where(view['filters'])
-    prefix = relation(view['rows'] + view['columns'] + list(view['filters']))
-    measures = """count(DISTINCT f.APP_ID) FILTER(WHERE f.DIFF_FLAG=0),
-        count(DISTINCT f.APP_ID) FILTER(WHERE f.DIFF_FLAG=1 AND f.SOURCE='BEFORE'),
-        count(DISTINCT f.APP_ID) FILTER(WHERE f.DIFF_FLAG=1 AND f.SOURCE='AFTER'),
-        count(DISTINCT f.APP_ID)"""
-    rows = con.execute(prefix+'SELECT f.PATH,f.VALUE_ADJUSTED,'+measures+' FROM scoped f'+clause+' GROUP BY f.PATH,f.VALUE_ADJUSTED',args).fetchall()
-    totals = con.execute(prefix+'SELECT '+measures+' FROM scoped f'+clause,args).fetchone()
-    order = list(STRATEGY_FIELDS)
-    rows.sort(key=lambda r:(order.index(r[0]),str(r[1])))
+    roots, totals = tree_data(con)
+    rows = []
+    def walk(node, parent='', depth=0):
+        identifier = str(len(rows)+1)
+        branch = bool(node['children'])
+        label = esc(node['label'])
+        name = (f'<button class="tree-toggle" aria-expanded="false" aria-label="Раскрыть {label}">'
+                f'<span class="arrow" aria-hidden="true">▸</span>{label}</button>' if branch else
+                f'<span class="tree-leaf">{label}</span>')
+        kind = 'ключ массива' if node['kind']=='array' else node.get('value_kind','')
+        cells = ''.join(f'<td class="num {"changed" if i in [4,6] else ""}">{number(node["counts"][i])}</td>' for i in [3,4,5,6,2])
+        rows.append(f'<tr data-id="{identifier}" data-parent="{parent}" data-kind="{node["kind"]}" '
+            f'data-path="{esc(node["path"])}"{ " hidden" if parent else ""}>'
+            f'<th scope="row"><div class="node-name" style="padding-left:{depth*18}px" title="{esc(node["path"])}">'
+            f'{name}<small>{esc(kind)}</small></div></th>{cells}</tr>')
+        for child in node['children']:
+            walk(child, identifier, depth+1)
+    for root in roots:
+        walk(root)
+    foot = ''.join(f'<td class="num {"changed" if i in [4,6] else ""}">{number(totals[i])}</td>' for i in [3,4,5,6,2])
+    return f'''<div class="section-title"><div><h2>Сводная таблица · все атрибуты</h2><p>Полный прогон: оба среза, все значения DIFF_FLAG.</p></div>
+        <div class="tree-actions"><button id="expand-all">Раскрыть всё</button><button id="collapse-all">Свернуть всё</button></div></div>
+        <p class="note">Числа — уникальные APP_ID. Итог родителя и общий итог считаются отдельно: складывать дочерние строки или BEFORE и AFTER нельзя. В каждом срезе выделены DIFF_FLAG = 0 (без изменений) и DIFF_FLAG = 1 (есть изменения). У родительского узла заявка может входить в обе группы по разным атрибутам; их сумма не является общим итогом.
+        Порядок массива сопоставляется по настроенным ключам; null, false, пустая строка и отсутствие поля различаются. В значениях показаны те же бакеты, что в приложении.</p>
+        <div class="table-scroll"><table class="attribute-table"><thead><tr><th rowspan="2">Атрибут / ключ массива / значение</th><th colspan="2">BEFORE (MASTER)</th><th colspan="2">AFTER (BETA)</th><th rowspan="2">Уникальных заявок</th></tr><tr><th>DIFF_FLAG = 0</th><th class="changed">DIFF_FLAG = 1</th><th>DIFF_FLAG = 0</th><th class="changed">DIFF_FLAG = 1</th></tr></thead>
+        <tbody>{''.join(rows) if rows else '<tr><td colspan="6">Нет атрибутов для отображения.</td></tr>'}</tbody>
+        <tfoot><tr><th>Итого уникальных заявок</th>{foot}</tr></tfoot></table></div>
+        <p class="note">В файл включены все уровни дерева и значения, без ограничения страниц. Стрелки раскрывают узлы; сворачивание родителя закрывает всё поддерево. При печати выводятся все строки. Локальные фильтры страницы в этот полный отчёт не переносятся.</p>'''
+
+
+def check_rows(run, checks):
+    snapshots = run.get('snapshots',{})
+    overrides = run.get('config',{}).get('params',{}).get('checks',{})
+    if run.get('report_version') and run.get('owner_id'):
+        try:
+            execution = meta.get('check_executions',run['report_version'],run['owner_id'])
+            if execution['run_id']==run['id']:
+                snapshots,overrides = execution['snapshots'],execution.get('params',{})
+        except KeyError:
+            pass
+    return with_thresholds(checks,snapshots,overrides)
+
+
+def checks_table(checks):
     body = []
-    previous = None
-    for path,value,*counts in rows:
-        labels = ''
-        if path != previous:
-            field = STRATEGY_FIELDS[path]
-            span = sum(r[0] == path for r in rows)
-            labels = f'<td rowspan="{span}" title="{esc(path)}"><b>{esc(field["block"])}</b></td><td rowspan="{span}">{esc(field["key"])}</td>'
-        previous = path
-        numbers = ''.join(f'<td class="num {style}">{number(n) if n else "—"}</td>' for n,style in zip(counts,['stable','changed','changed','total']))
-        body.append(f'<tr data-path="{esc(path)}" data-value="{esc(value)}">{labels}<td>{esc(value)}</td>{numbers}</tr>')
-    foot = ''.join(f'<td class="num {style}">{number(n)}</td>' for n,style in zip(totals,['stable','changed','changed','total']))
-    return f'''<div class="section-title"><div><h2>Стратегия · ключевые атрибуты</h2><p>Решения, причины отказа, вероятность одобрения, модель и порог.</p></div><span class="badge">{number(totals[-1])} уникальных заявок · {number(len(rows))} строк</span></div>
-    <div class="table-scroll pivot-scroll"><table class="strategy-table"><thead><tr><th rowspan="2">Показатель</th><th rowspan="2">Поле (KEY)</th><th rowspan="2">Значение / бакет</th><th rowspan="2" class="stable">Без изменений<br>DIFF_FLAG = 0</th><th colspan="2" class="changed">Есть изменения · DIFF_FLAG = 1</th><th rowspan="2">Общий итог</th></tr><tr><th class="changed">BEFORE (MASTER)</th><th class="changed">AFTER (BETA)</th></tr></thead><tbody>{''.join(body)}</tbody><tfoot><tr><th colspan="3">Уникальных заявок в выборке</th>{foot}</tr></tfoot></table></div>
-    <p class="note">Без изменений: заявка учтена один раз на оба среза. Общий итог — объединение APP_ID, не сумма колонок или строк. У заявки может быть несколько продуктов и значений. Изменения учтены по исходным значениям, даже внутри бакета. Все строки включены без пагинации. Лимиты и риск дефолта в этих данных недоступны.</p>'''
+    for row in checks:
+        ids = list(dict.fromkeys(row.get('APP_IDS',[])))
+        total = row.get('CNT',0)
+        limited = len(ids)<total
+        apps = (f'<details><summary>Показать {len(ids)} APP_ID</summary><ul>' +
+                ''.join(f'<li><code>{esc(app)}</code></li>' for app in ids) + '</ul></details>') if ids else 'Нет APP_ID'
+        if limited:
+            apps += f'<small>Первые {len(ids)} из {number(total)}. Проверка ограничивает APP_IDS; список неполный.</small>'
+        elif not total:
+            apps += '<small>Нет затронутых заявок.</small>'
+        threshold = row.get('threshold') or {}
+        result = row.get('RESULT','')
+        confidence = row.get('CONFIDENCE','')
+        style = 'pass' if result=='PASS' else 'fail' if result=='FAIL' else ''
+        body.append(f'''<tr class="{'low' if confidence=='LOW' else ''}"><td><b title="{esc(row.get('LABEL',''))}">{esc(short_text(row.get('LABEL',''),72))}</b><small title="{esc(row.get('ARGUMENT',''))}">{esc(short_argument(row.get('ARGUMENT','')))}</small></td>
+            <td>{esc(row.get('SOURCE',''))}</td><td class="num">{number(total)} / {number(row.get('TOTAL'))}</td>
+            <td class="num" title="{esc(threshold.get('parameter') or '')} {esc(threshold.get('operator',''))}">{percent(threshold.get('value'))}</td>
+            <td class="num">{percent(row.get('METRIC'))}</td><td><span class="badge {style}">{esc(result)}</span></td>
+            <td>{esc(confidence)}</td><td>{apps}</td></tr>''')
+    return f'''<div class="section-title"><h2>Результаты автопроверок</h2><span class="badge">{len(checks)} строк · PASS {sum(r.get('RESULT')=='PASS' for r in checks)} · FAIL {sum(r.get('RESULT')=='FAIL' for r in checks)}</span></div>
+        <p>Сохранённые результаты этого прогона, включая последнее успешное повторное применение проверок. Все строки включены без фильтров.</p>
+        <div class="table-scroll"><table class="checks-table"><thead><tr><th>Проверка / аргумент</th><th>Срез</th><th>CNT / TOTAL</th><th>Порог, %</th><th>Разница в %</th><th>Результат</th><th>Уверенность</th><th>Заявки</th></tr></thead><tbody>
+        {''.join(body) if body else '<tr><td colspan="8">Для этого прогона нет результатов проверок.</td></tr>'}</tbody></table></div>
+        <p class="note">Числа в процентных столбцах — исходные METRIC и пороги × 100, с одним знаком после запятой. Для Approval Rate это относительное падение, для остальных выданных проверок — доля затронутых заявок. Прочерк означает отсутствие численного порога. LOW — низкая уверенность; PASS/FAIL сохраняют смысл исходной проверки.</p>'''
+
+
+TREE_SCRIPT = '''
+const table=document.querySelector('.attribute-table');
+const rows=Array.from(table.querySelectorAll('tbody tr[data-id]'));
+const children=new Map();
+for(const row of rows){const parent=row.dataset.parent;if(!children.has(parent))children.set(parent,[]);children.get(parent).push(row);}
+function expanded(row,value){const button=row.querySelector('.tree-toggle');if(button){button.setAttribute('aria-expanded',String(value));button.querySelector('.arrow').textContent=value?'▾':'▸';}}
+function collapse(row){for(const child of children.get(row.dataset.id)||[]){child.hidden=true;expanded(child,false);collapse(child);}}
+table.addEventListener('click',event=>{const button=event.target.closest('.tree-toggle');if(!button)return;const row=button.closest('tr');const open=button.getAttribute('aria-expanded')!=='true';expanded(row,open);if(open){for(const child of children.get(row.dataset.id)||[])child.hidden=false;}else collapse(row);});
+document.getElementById('expand-all').addEventListener('click',()=>{for(const row of rows){row.hidden=false;expanded(row,true);}});
+document.getElementById('collapse-all').addEventListener('click',()=>{for(const row of rows){row.hidden=!!row.dataset.parent;expanded(row,false);}});
+'''
 
 
 def render(run, summary, stats, checks, con=None, public_base_url=None):
     if con is None:
-        with duckdb.connect(run['mart_path'], read_only=True) as connection:
-            return render(run, summary, stats, checks, connection, public_base_url)
-    stats = display_stats(con, stats)
-    confidence = number((1 - stats.get('alpha', .05)) * 100)
-    cards = ''.join(stat_card(title, stats[key], confidence, percentage) for title, key, percentage in [('Одобрение заявок', 'app_approval_rate', True), ('Одобрено продуктов на заявку', 'approved_products', False), ('Вероятность одобрения', 'target_score', True)])
-    cards += '<div class="cards two" style="grid-column:1/-1;margin:0">' + ''.join(bureau_card(field, row) for field, row in stats['bureau_scores'].items()) + '</div><p class="note" style="grid-column:1/-1">Скоры Эквифакс и ОКБ и их изменения — в баллах соответствующего бюро. Чем выше скор, тем выше благонадёжность по оценке этого бюро. T-тест сравнивает средние всех одобренных в каждом срезе, учитывая общие APP_ID; p-value скорректированы по Холму для двух скоров. Разница может отражать отбор и изменение входных данных; значимость не доказывает причинность. Нулевой скор учитывается; отсутствие значения не заменяется нулём.</p>'
-    families = family_table(stats.get('families', {}).get('products', []), confidence)
-    titles = {'external_unchanged': 'Внешний скор не менялся'}
-    strata = ''.join(stat_card(titles.get(key, key), value, confidence) for key, value in stats.get('strata', {}).items())
-    back = esc((public_base_url or meta.PUBLIC_BASE_URL).rstrip('/') + '/?run=' + run['id'] + '&tab=pivot')
+        with duckdb.connect(run['mart_path'],read_only=True) as connection:
+            return render(run,summary,stats,checks,connection,public_base_url)
     css = Path(__file__).with_name('report.css').read_text(encoding='utf-8')
-    return f'''<!doctype html><html lang="ru"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>СПР · отчёт по прогону {esc(run['id'])}</title><style>{css}</style></head><body><main>
-    <header><div class="eyebrow">Система анализа изменений СПР</div><h1>BEFORE (MASTER) → AFTER (BETA)</h1><p>Статистика парных наблюдений и ключевые атрибуты стратегии</p><div>Прогон {esc(run['id'])} · {esc(run['created'])} · {number(summary.get('total_apps'))} пар заявок</div><nav><a href="#statistics">Статистика</a><a href="#families">Продукты (компании)</a><a href="#strategy">Ключевые атрибуты</a><a href="{back}">Открыть интерактивную сводную</a></nav></header>
-    <section id="statistics"><div class="section-title"><h2>Парное сравнение заявок</h2><span class="badge">Доверительный интервал {confidence}%</span></div><p>{esc(stats.get('interpretation', ''))}</p><div class="cards">{cards}</div><p class="note">Для долей и вероятности: BEFORE и AFTER — в процентах; изменение AFTER − BEFORE и его CI — в процентных пунктах (п.п.). Например: 50% → 40% означает −10 п.п. Уровень доверия CI — в процентах. Вероятность сравнивается на сопоставимых продуктах с одинаковым названием и типом модели. Для количества продуктов сохранена единица «продукта / заявку». Вероятность одобрения не является вероятностью дефолта.</p><p class="method">Парный bootstrap по APP_ID: {number(stats.get('bootstrap'))} повторений · seed {number(stats.get('seed'))} · α = {number(stats.get('alpha'))}. Для бинарных исходов — точный тест Мак-Немара; для семейств — поправка Холма. Отсутствие значимости не доказывает сохранение метрики.</p></section>
-    <section id="families"><h2>Сравнение по продуктам (компаниям)</h2><p>Продукт (компания) сравнивается на заявках, где продукт присутствует в обоих срезах. Поправка Холма применяется внутри заранее заданного семейства продуктов.</p>{families}<p class="note">Названия взяты из данных этого прогона. p-value округлены максимум до четырёх знаков, очень малые значения сохранены в научной записи. Подгруппы служат диагностике.</p></section>
-    <section id="comparability"><h2>Анализ сопоставимости</h2><div class="cards two">{strata}</div><p>Изменение доли одобрений среди заявок с неизменным внешним скором. Сравнение подгруппы с неизменным входом не доказывает причинный эффект.</p></section>
-    <section id="strategy">{pivot_table(con)}</section><footer>Отчёт самодостаточен: таблицы и оформление доступны без подключения к сервису. Для перехода к заявкам через интерактивную сводную нужен вход владельца. Риск дефолта, лимиты и денежный эффект недоступны без дополнительных данных.</footer></main></body></html>'''
+    base = (public_base_url or meta.PUBLIC_BASE_URL).rstrip('/')+'/?run='+run['id']
+    checks = check_rows(run,checks)
+    return f'''<!doctype html><html lang="ru"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+        <title>СПР · сводная и проверки · {esc(run['id'])}</title><style>{css}</style></head><body><main>
+        <header><div class="eyebrow">Система анализа изменений СПР</div><h1>BEFORE (MASTER) → AFTER (BETA)</h1><p>Сводная таблица и результаты автопроверок</p>
+        <div>Прогон {esc(run['id'])} · {esc(run['created'])}</div>
+        <div class="run-numbers">Пар заявок: <b>{number(summary.get('total_apps'))}</b> · С различиями, включая смену решения: <b>{number(summary.get('changed_apps'))}</b></div>
+        <nav><a href="#pivot">Сводная таблица</a><a href="#checks">Автопроверки</a><a href="{esc(base+'&tab=pivot')}">Открыть сводную в приложении</a><a href="{esc(base+'&tab=checks')}">Открыть проверки в приложении</a></nav></header>
+        <section id="pivot">{pivot_table(con)}</section><section id="checks">{checks_table(checks)}</section>
+        <footer>Данные и оформление включены в файл; дерево и списки APP_ID работают без сервера. Для перехода в приложение нужен вход владельца прогона.</footer>
+        </main><script>{TREE_SCRIPT}</script></body></html>'''

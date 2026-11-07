@@ -3,6 +3,7 @@ import ast
 from collections import defaultdict
 import hashlib
 import re
+from backend.app.core.check_display import static_definition
 
 
 CHECK_NAMES = {
@@ -11,7 +12,7 @@ CHECK_NAMES = {
     'external_score_drift': ('Изменение внешнего скора и входных данных', 'Сопоставляет изменение внешнего скора, входных признаков и итогового решения.'),
     'stop_factor_disappeared': ('Исчезновение или отключение стоп-факторов', 'Показывает исчезнувшие правила и переход сработавшего стоп-фактора в несработавший.'),
     'target_model_changed': ('Смена целевой модели и порога', 'Показывает смену целевой модели и сопутствующее изменение порога.'),
-    'my_changes': ('Доля изменений в пределах порога', 'Сравнивает долю изменённых заявок с параметром max_share. 30% — демонстрационный допуск, не критерий безопасности.'),
+    'my_changes': ('Доля изменений в пределах порога', 'Сравнивает долю изменённых заявок с параметром max_share.'),
 }
 
 
@@ -40,14 +41,23 @@ def named_scripts(scripts):
             row['check_id'] = metadata.get('id')
             generic = bool(re.match(r'^Моя проверка(?:\b|\.)',row.get('name',''),re.I))
             known = CHECK_NAMES.get(metadata.get('id'))
-            if known and (generic or row.get('name','').startswith('check_')):
+            share_variant = bool(re.fullmatch(r'my_changes(?:_\d+)?',metadata.get('id') or ''))
+            if share_variant:
+                defaults=static_definition(row.get('code','')).get('params',{})
+                limit=row.get('params',{}).get('max_share',defaults.get('max_share',.3))
+                percentage=f'{limit*100:g}' if type(limit) in (int,float) and 0<=limit<=1 else '—'
+                label=f'Доля изменений в пределах порога · {percentage}%'
+                if not generic and not row.get('name','').startswith(('Доля изменений','check_')):
+                    label=row.get('name') or label
+                description=f'Сравнивает долю изменённых заявок с параметром max_share. {percentage}% — предел.'
+            elif known and (generic or row.get('name','').startswith('check_')):
                 label, description = known
             else:
                 label = metadata.get('label') if generic else row.get('name')
                 label = label or row.get('name') or 'Пользовательская проверка'
                 description = 'Пользовательская проверка. Откройте код, чтобы посмотреть условие и параметры.'
             row.update(display_name=label,description=description)
-            if generic:
+            if generic and not share_variant:
                 duplicates[(label,hashlib.sha256(row.get('code','').encode()).hexdigest())].append(row)
         result.append(row)
     for group in duplicates.values():

@@ -27,6 +27,14 @@ def con(tmp_path,monkeypatch):
 def test_nodes_are_unique_app_counts_with_composite_arrays_and_typed_values(con):
     root=tree.children(con,'run',tree.TreeRequest())
     assert root['totals']['TOTAL']['count']==2
+    assert root['totals']['BEFORE_0']['count']==2
+    assert root['totals']['BEFORE_1']['count']==1
+    assert root['totals']['AFTER_1']['count']==1
+    changed=pivot.decode(root['totals']['BEFORE_1']['cell_token'],'run')
+    assert changed['__tree']['filters']=={'SOURCE':['BEFORE'],'DIFF_FLAG':[1]}
+    assert pivot.apps(con,changed)['app_ids']==['A']
+    assert ('score','') in pivot.matching_attributes(con,'A',changed)
+    assert all(key not in pivot.matching_attributes(con,'A',changed) for key in [('empty','')])
     offers=next(n for n in root['nodes'] if n['label']=='offers')
     assert offers['cells']['TOTAL']['count']==1
     fields=tree.children(con,'run',tree.TreeRequest(**offers['request']))

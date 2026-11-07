@@ -1,6 +1,6 @@
 import {test,expect} from '@playwright/test';
 
-test('custom check passes within its visible threshold and duplicate copies cannot be selected',async({page,context})=>{
+test('custom check variants have distinct limits and concise descriptions',async({page,context})=>{
  test.setTimeout(30000);
  await context.request.post('/api/auth/login',{data:{username:'alice',password:'demo'}});
  const boot=(await (await context.request.get('/api/bootstrap')).json()).data;
@@ -20,7 +20,10 @@ test('custom check passes within its visible threshold and duplicate copies cann
  const duplicates=page.locator('.check-options label').filter({hasText:'Доля изменений в пределах порога'});
  expect(await duplicates.count()).toBeGreaterThan(1);
  await expect(duplicates.locator('input:checked')).toHaveCount(1);
- await expect(duplicates.locator('input:not(:checked):not(:disabled)')).toHaveCount(0);
+ await expect(duplicates.locator('input:not(:checked):not(:disabled)')).toHaveCount(4);
+ for(const limit of [10,20,30,40,50]){await expect(duplicates.filter({hasText:limit+'% — предел.'})).toHaveCount(1)}
+ expect(await duplicates.allTextContents()).toEqual(expect.arrayContaining([expect.stringContaining('max_share')]));
+ expect((await duplicates.allTextContents()).join(' ')).not.toContain('Одинаковая логика');
  await expect(page.getByRole('textbox',{name:'Параметры конфигурации JSON'})).toHaveValue(/"max_share": 0.3/);
  await expect(page.getByRole('textbox',{name:'Параметры конфигурации JSON'})).toHaveValue(/"max_drop_rel": 0.3/);
  await expect(page.getByRole('textbox',{name:'Параметры конфигурации JSON'})).toHaveValue(/"min_share": 0.1/);

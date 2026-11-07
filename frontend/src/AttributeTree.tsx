@@ -6,9 +6,10 @@ import {api} from './api';
 import './attributeTree.css';
 
 type Query={path:string;stage:'path'|'keys'|'values';array_key?:string|null};
+type Cells=Record<'BEFORE'|'AFTER'|'TOTAL'|'BEFORE_0'|'BEFORE_1'|'AFTER_0'|'AFTER_1',PivotCell>;
 type TreeNode={id:string;path:string;label:string;kind:'path'|'array'|'value';value_kind?:string;has_children:boolean;
- request:Query|null;cells:Record<'BEFORE'|'AFTER'|'TOTAL',PivotCell>};
-type Data={nodes:TreeNode[];totals:Record<'BEFORE'|'AFTER'|'TOTAL',PivotCell>;pagination:{page:number;page_size:number;total_nodes:number;has_more:boolean}};
+ request:Query|null;cells:Cells};
+type Data={nodes:TreeNode[];totals:Cells;pagination:{page:number;page_size:number;total_nodes:number;has_more:boolean}};
 type State={loading:boolean;data?:Data;error?:string};
 const ROOT='$root',rootQuery:Query={path:'',stage:'path'};
 const number=(n:number)=>n.toLocaleString('ru-RU');
@@ -42,8 +43,12 @@ export function AttributeTree({runId,refresh,onCell}:{runId:string;refresh:numbe
   }
  }
  const showBefore=source!=='AFTER',showAfter=source!=='BEFORE';
- const columns=2+Number(showBefore)+Number(showAfter),root=cache[ROOT];
- function cell(value:PivotCell){return <td className="tree-number">{value.count?<button onClick={()=>onCell(value)} title="Открыть уникальные заявки">{number(value.count)}<ArrowDownRight size={12}/></button>:<span className="tree-zero">—</span>}</td>}
+ const splitDiff=diff==='';
+ const columns=2+(Number(showBefore)+Number(showAfter))*(splitDiff?2:1),root=cache[ROOT];
+ function cell(value:PivotCell,style=''){return <td className={'tree-number '+style}>{value.count?<button onClick={()=>onCell(value)} title="Открыть уникальные заявки">{number(value.count)}<ArrowDownRight size={12}/></button>:<span className="tree-zero">—</span>}</td>}
+ function sourceCells(values:Cells,slice:'BEFORE'|'AFTER'){
+  return splitDiff?<>{cell(values[`${slice}_0`],'tree-same')}{cell(values[`${slice}_1`],'tree-changed')}</>:cell(values[slice],diff==='1'?'tree-changed':'tree-same');
+ }
  function status(id:string,query:Query,depth:number){
   const state=cache[id];if(!state)return null;
   return <>{state.loading&&<tr><td colSpan={columns} className="tree-load" style={{paddingLeft:20+depth*20}} role="status">Загружаем узлы…</td></tr>}
@@ -58,17 +63,16 @@ export function AttributeTree({runId,refresh,onCell}:{runId:string;refresh:numbe
    <th scope="row" className="tree-name"><div style={{paddingLeft:depth*20}}>
     {node.has_children?<button className="tree-toggle" onClick={()=>toggle(node)} aria-expanded={expanded} aria-label={(expanded?'Свернуть ':'Раскрыть ')+node.label}>{expanded?<ChevronDown size={15}/>:<ChevronRight size={15}/>}<span title={node.kind==='array'?'Ключ массива: '+node.label:node.path}>{node.label}</span></button>:<span className="tree-leaf" title={node.path}>{node.label}</span>}
     {node.kind==='array'&&<small>ключ массива</small>}{node.kind==='value'&&<small>{types[node.value_kind||'']||node.value_kind}</small>}
-   </div></th>{showBefore&&cell(node.cells.BEFORE)}{showAfter&&cell(node.cells.AFTER)}{cell(node.cells.TOTAL)}</tr>
+   </div></th>{showBefore&&sourceCells(node.cells,'BEFORE')}{showAfter&&sourceCells(node.cells,'AFTER')}{cell(node.cells.TOTAL)}</tr>
    {expanded&&<>{renderNodes(children,depth+1)}{node.request&&status(node.id,node.request,depth+1)}</>}
   </Fragment>;
   });
  }
  return <section className="panel attribute-tree"><div className="tree-heading"><div><h2><FolderTree size={21}/> Все атрибуты · дерево JSON</h2><p>Раскрывайте пути → ключи массивов → значения. Каждая ячейка считает уникальные APP_ID, включая все скрытые дочерние узлы.</p></div><button className="secondary" onClick={()=>setOpened(new Set())} disabled={!opened.size}>Свернуть всё</button></div>
   <div className="tree-filters"><label>Срез<select aria-label="Дерево: срез" value={source} onChange={e=>setSource(e.target.value)}><option value="">BEFORE и AFTER</option><option value="BEFORE">BEFORE (MASTER)</option><option value="AFTER">AFTER (BETA)</option></select></label><label>DIFF_FLAG<select aria-label="Дерево: DIFF_FLAG" value={diff} onChange={e=>setDiff(e.target.value)}><option value="">Все значения</option><option value="0">0 — без изменений</option><option value="1">1 — есть изменения</option></select></label><span>Считаются заявки, не сумма атрибутов или продуктов.</span></div>
-  <div className="tree-table-wrap"><table className="attribute-tree-table"><thead><tr><th>Атрибут / ключ / значение</th>{showBefore&&<th>BEFORE (MASTER)</th>}{showAfter&&<th>AFTER (BETA)</th>}<th>Уникальный итог</th></tr></thead><tbody>
+  <div className="tree-table-wrap"><table className="attribute-tree-table"><thead><tr><th rowSpan={splitDiff?2:1}>Атрибут / ключ / значение</th>{showBefore&&<th colSpan={splitDiff?2:1}>BEFORE (MASTER)</th>}{showAfter&&<th colSpan={splitDiff?2:1}>AFTER (BETA)</th>}<th rowSpan={splitDiff?2:1}>Уникальный итог</th></tr>{splitDiff&&<tr>{[...(showBefore?['BEFORE']:[]),...(showAfter?['AFTER']:[])].map(slice=><Fragment key={slice}><th className="tree-same">DIFF_FLAG = 0</th><th className="tree-changed">DIFF_FLAG = 1</th></Fragment>)}</tr>}</thead><tbody>
    {renderNodes(root?.data?.nodes||[],0)}{status(ROOT,rootQuery,0)}
    {root?.data&&!root.loading&&!root.data.nodes.length&&<tr><td colSpan={columns} className="tree-empty">В выбранных фильтрах атрибутов нет.</td></tr>}
-  </tbody>{root?.data&&<tfoot><tr><th>Заявок хотя бы с одним атрибутом<small>Объединение APP_ID, не сумма узлов</small></th>{showBefore&&cell(root.data.totals.BEFORE)}{showAfter&&cell(root.data.totals.AFTER)}{cell(root.data.totals.TOTAL)}</tr></tfoot>}</table></div>
-  <p className="tree-explanation">Дерево строится по всем атрибутам сохранённой нормализации; исключённые при подготовке технические поля в неё не входят. null, false, пустая строка и строковые значения различаются. Исчезнувшие поля видны в BEFORE при DIFF_FLAG=1, новые — в AFTER. Различия считаются по исходным значениям, даже внутри одного бакета. Нажмите число для перехода к заявкам и атрибутам.</p>
+  </tbody>{root?.data&&<tfoot><tr><th>Заявок хотя бы с одним атрибутом<small>Объединение APP_ID, не сумма узлов</small></th>{showBefore&&sourceCells(root.data.totals,'BEFORE')}{showAfter&&sourceCells(root.data.totals,'AFTER')}{cell(root.data.totals.TOTAL)}</tr></tfoot>}</table></div>
  </section>;
 }

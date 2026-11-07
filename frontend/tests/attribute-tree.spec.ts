@@ -13,6 +13,14 @@ test('full attribute tree folds descendants, filters slices/diffs and drills to 
  const tree=page.locator('.attribute-tree');
  await expect(tree.locator('tbody tr[data-kind="path"]')).toHaveCount(root.nodes.length);
  const decisionRoot=tree.locator('tr[data-path="decisionResult"][data-kind="path"]');
+ await expect(decisionRoot.locator('.tree-number')).toHaveCount(5);
+ await expect(tree.locator('thead tr').nth(1).locator('th')).toHaveText(['DIFF_FLAG = 0','DIFF_FLAG = 1','DIFF_FLAG = 0','DIFF_FLAG = 1']);
+ const decisionCounts=root.nodes.find((n:any)=>n.path==='decisionResult').cells;
+ await expect(decisionRoot.locator('.tree-number')).toHaveText(['BEFORE_0','BEFORE_1','AFTER_0','AFTER_1','TOTAL'].map(s=>decisionCounts[s].count?decisionCounts[s].count.toLocaleString('ru-RU'):'—'));
+ await decisionRoot.locator('.tree-number').nth(1).getByRole('button').click();
+ await expect(page.locator('.drawer h2')).toContainText(decisionCounts.BEFORE_1.count.toLocaleString('ru-RU'));
+ await expect(page.locator('.drawer')).toContainText('DIFF_FLAG: 1');
+ await page.getByRole('button',{name:'Закрыть заявки',exact:true}).click();
  await decisionRoot.getByRole('button',{name:'Раскрыть decisionResult',exact:true}).click();
  const decision=tree.locator('tr[data-path="decisionResult.decision"][data-kind="path"]');
  await decision.getByRole('button',{name:'Раскрыть decision',exact:true}).click();

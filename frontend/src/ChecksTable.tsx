@@ -1,6 +1,7 @@
 import {useState} from 'react';
 import {X} from 'lucide-react';
 import {percent,percentNumber,rangeFilter} from './checkFilters';
+import {shortText,shortArgument} from './checkLabels';
 import './checksTable.css';
 
 export type CheckRow={LABEL:string;SOURCE:string;ARGUMENT:string;CNT:number;TOTAL:number;METRIC:number;
@@ -21,11 +22,10 @@ export function ChecksTable({rows,onApp,onApps}:{rows:CheckRow[];onApp:(id:strin
  <div className="table-wrap"><table className="checks-table"><thead><tr>{['Проверка / аргумент','Срез','CNT / TOTAL','Порог, %','Разница в %','Результат','Уверенность','Заявки'].map(t=><th key={t}>{t}</th>)}</tr>
  <tr className="checks-filter-row"><th>{input('LABEL','Проверка')}{input('ARGUMENT','Аргумент')}</th><th>{dropdown('SOURCE','Срез',['BEFORE','AFTER'])}</th><th/><th>{range('threshold','Порог')}</th><th>{range('METRIC','Разница в %')}</th><th>{dropdown('RESULT','Результат',['PASS','FAIL'])}</th><th>{dropdown('CONFIDENCE','Уверенность',['HIGH','LOW'])}</th><th/></tr></thead>
  <tbody>{filtered.map((r,i)=><tr key={i} className={r.CONFIDENCE==='LOW'?'low-confidence':r.RESULT==='FAIL'?'check-fail':''}>
- <td><b>{r.LABEL}</b><small>{r.ARGUMENT}</small></td><td>{r.SOURCE}</td><td>{r.CNT} / {r.TOTAL}</td>
+ <td><button className="check-open" aria-label={`Заявки проверки: ${r.LABEL}; ${r.ARGUMENT}; ${r.SOURCE}`} title={`${r.LABEL}\n${r.ARGUMENT}\nНажмите, чтобы открыть заявки и сравнить BEFORE / AFTER`} onClick={()=>onApps(r)}><b>{shortText(r.LABEL,72)}</b><small>{shortArgument(r.ARGUMENT)}</small></button></td><td>{r.SOURCE}</td><td>{r.CNT} / {r.TOTAL}</td>
  <td className="check-percentage" title={r.threshold?.value==null?'Численный процентный порог не задан':`${r.threshold.parameter}: ${r.threshold.operator} ${percent(r.threshold.value)}`}>{percent(r.threshold?.value)}</td>
  <td className="check-percentage" title="Исходная METRIC × 100; смысл показателя определяется проверкой">{percent(r.METRIC)}</td>
  <td><span className={'badge '+(r.RESULT==='PASS'?'success':r.CONFIDENCE==='LOW'?'':'danger')}>{r.RESULT}</span></td><td>{r.CONFIDENCE}</td>
  <td><div className="app-links">{r.APP_IDS.slice(0,3).map(id=><button className="link mono" key={id} onClick={()=>onApp(id)}>{id}</button>)}{r.APP_IDS.length>3&&<button className="link" onClick={()=>onApps(r)}>Все {r.APP_IDS.length}</button>}</div>{r.CNT>r.APP_IDS.length&&<small>Первые {r.APP_IDS.length} из {r.CNT}</small>}</td></tr>)}</tbody></table></div>
- {!filtered.length&&<div className="empty">Нет строк, соответствующих фильтрам.</div>}
- <p className="hint">В выданных проверках для Approval Rate показано относительное падение, для остальных — доля затронутых заявок. Отображение: METRIC × 100. Значения и числовые фильтры указаны в процентах с точностью до одного знака. Прочерк означает отсутствие процентного порога.</p></>
+ {!filtered.length&&<div className="empty">Нет строк, соответствующих фильтрам.</div>}</>
 }

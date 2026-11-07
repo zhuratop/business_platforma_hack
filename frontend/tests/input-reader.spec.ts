@@ -46,5 +46,5 @@ test('mixed-format ZIP reaches a worker-built report through the interface',asyn
  const run=(await (await context.request.get('/api/runs/'+runId)).json()).data;
  expect(run.saved_pairs).toBe(4);expect(run.normalized_rows).toBeGreaterThan(0);
  const report=await context.request.get('/api/runs/'+runId+'/report.html');
- expect(report.ok()).toBeTruthy();expect(await report.text()).toContain('Вероятность одобрения');
+ expect(report.ok()).toBeTruthy();expect(await report.text()).toContain('Результаты автопроверок');
 });
