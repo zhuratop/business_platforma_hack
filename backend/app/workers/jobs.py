@@ -141,7 +141,7 @@ def full_run(id):
         write(con,'pivot_facts',fact_rows())
         write(con,'fact_memberships',memberships)
         indexes(con)
-        dims = ','.join('"'+d+'"' for d in __import__('backend.app.domain.contracts',fromlist=['DIMENSIONS']).DIMENSIONS)
+        dims = ','.join('"'+d+'"' for d in __import__('backend.app.domain.contracts',fromlist=['FACT_DIMENSIONS']).FACT_DIMENSIONS)
         if con.execute(f'SELECT 1 FROM pivot_facts GROUP BY {dims} HAVING count(*)>1 LIMIT 1').fetchone():
             raise ValueError('Duplicate fact dimensions')
         if con.execute('SELECT 1 FROM fact_memberships m LEFT JOIN app_segments s USING(APP_ID) WHERE s.APP_ID IS NULL LIMIT 1').fetchone():
@@ -160,7 +160,8 @@ def full_run(id):
     timings['REPORTING'] = round(time.perf_counter()-phase_start,4)
     overview['timings'] = timings
     overview['processing_seconds'] = round(time.perf_counter()-started,4)
-    html = render(run,overview,stats,rows)
+    with duckdb.connect(str(temp),read_only=True) as con:
+        html = render(run,overview,stats,rows,con)
     version = meta.uid()
     (folder/f'report-{version}.html').write_text(html,encoding='utf-8')
     os.replace(temp,folder/'mart.duckdb')

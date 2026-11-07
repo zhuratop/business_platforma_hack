@@ -16,7 +16,7 @@ from backend.app.storage import meta
 from backend.app.storage.mart import MartAPI
 from backend.app.core import importer,pivot
 from backend.app.core.execution import seed,snapshots
-from backend.app.domain.contracts import PivotRequest,DIMENSIONS
+from backend.app.domain.contracts import PivotRequest,DIMENSIONS,DIMENSION_GROUPS,DIMENSION_LABELS
 
 @asynccontextmanager
 async def lifespan(app):
@@ -106,8 +106,9 @@ def me(u=Depends(user)):
 @app.get('/api/bootstrap')
 def bootstrap(u=Depends(user)):
     seed(u['id'])
+    from scripts.default_spr.pivot_views import VIEWS
     return ok(dict(user=u,data_root=str(meta.DATA_ROOT),default_dataset=str(meta.DATA_ROOT/'data'/'RUN-20260827-0001'),
-                   dimensions=DIMENSIONS,files=[str(p) for p in (meta.ROOT/'scripts').rglob('*.py') if p.parent.name in ['default_spr','checks']],
+                   dimensions=DIMENSIONS,dimension_groups=DIMENSION_GROUPS,dimension_labels=DIMENSION_LABELS,pivot_views=VIEWS,files=[str(p) for p in (meta.ROOT/'scripts').rglob('*.py') if p.parent.name in ['default_spr','checks']],
                    datasets=meta.listing('datasets',u['id']),configs=meta.listing('configs',u['id']),scripts=current_scripts(u['id']),
                    runs=[public_run(r) for r in meta.listing('runs',u['id'])]))
 
@@ -264,12 +265,27 @@ def run_summary(id:str,u=Depends(user)):
 
 @app.get('/api/runs/{id}/stats')
 def run_stats(id:str,u=Depends(user)):
-    return ok(owned_run(id,u['id'],True)['stats'],id)
+    run=owned_run(id,u['id'],True)
+    from scripts.default_spr.stat_display import display_stats
+    with duckdb.connect(run['mart_path'],read_only=True) as con:
+        stats=display_stats(con,run['stats'])
+    return ok(stats,id)
 
 @app.get('/api/runs/{id}/checks')
 def checks(id:str,u=Depends(user)):
     run = owned_run(id,u['id'],True)
-    return ok(dict(rows=run['checks'],executions=meta.listing('check_executions',u['id']),version=run['report_version']),id)
+    from backend.app.core.check_display import with_thresholds
+    snapshots=run['snapshots']
+    overrides=run['config'].get('params',{}).get('checks',{})
+    try:
+        execution=meta.get('check_executions',run['report_version'],u['id'])
+        if execution['run_id']==id:
+            snapshots=execution['snapshots']
+            overrides=execution.get('params',{})
+    except KeyError:
+        pass
+    rows=with_thresholds(run['checks'],snapshots,overrides)
+    return ok(dict(rows=rows,executions=meta.listing('check_executions',u['id']),version=run['report_version']),id)
 
 @app.post('/api/runs/{id}/checks')
 def rerun_checks(id:str,body:dict=Body(...),u=Depends(user)):
@@ -313,8 +329,10 @@ def app_details(id:str,app_id:str,cell_token:str|None=None,u=Depends(user)):
 @app.get('/api/runs/{id}/report.html')
 def report(id:str,download:bool=False,u=Depends(user)):
     run = owned_run(id,u['id'],True)
-    path = Path(run['mart_path']).parent/f"report-{run['report_version']}.html"
-    return FileResponse(path,media_type='text/html',filename=f'spr-{id}.html' if download else None,content_disposition_type='attachment' if download else 'inline')
+    from backend.app.core.report import render
+    content = render(run,run['summary'],run['stats'],run.get('checks',[]))
+    disposition = f'attachment; filename="spr-{id}.html"' if download else 'inline'
+    return Response(content,media_type='text/html',headers={'Content-Disposition':disposition,'Cache-Control':'no-store'})
 
 @app.get('/api/health')
 def health():

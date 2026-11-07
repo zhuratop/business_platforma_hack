@@ -1,0 +1,40 @@
+{
+  "run_id": "72a89d51382d6a25e96c3998",
+  "views": [
+    {
+      "view": "strategy",
+      "seconds": 0.1756,
+      "rows": 116,
+      "page_cells": 263,
+      "unique_apps": 2002
+    },
+    {
+      "view": "all",
+      "seconds": 0.4685,
+      "rows": 19778,
+      "page_cells": 200,
+      "unique_apps": 2002
+    },
+    {
+      "view": "decisions",
+      "seconds": 0.0986,
+      "rows": 2,
+      "page_cells": 8,
+      "unique_apps": 2002
+    },
+    {
+      "view": "external",
+      "seconds": 0.1439,
+      "rows": 910,
+      "page_cells": 200,
+      "unique_apps": 2002
+    },
+    {
+      "view": "buckets",
+      "seconds": 0.1161,
+      "rows": 2,
+      "page_cells": 4,
+      "unique_apps": 2002
+    }
+  ]
+}

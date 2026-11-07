@@ -1,0 +1,50 @@
+{
+  "product_decisions": {
+    "cells": [
+      {
+        "SOURCE": "AFTER",
+        "count": 927
+      },
+      {
+        "SOURCE": "BEFORE",
+        "count": 927
+      }
+    ],
+    "seconds": 0.051366599975153804
+  },
+  "changed_product_decisions": {
+    "cells": [
+      {
+        "SOURCE": "AFTER",
+        "count": 177
+      },
+      {
+        "SOURCE": "BEFORE",
+        "count": 177
+      }
+    ],
+    "seconds": 0.014864200027659535
+  },
+  "decision_bucket_matrix": [
+    {
+      "ADJUSTED_BEFORE": "APPROVE",
+      "ADJUSTED_AFTER": "APPROVE",
+      "count": 186
+    },
+    {
+      "ADJUSTED_BEFORE": "APPROVE",
+      "ADJUSTED_AFTER": "REJECT",
+      "count": 125
+    },
+    {
+      "ADJUSTED_BEFORE": "REJECT",
+      "ADJUSTED_AFTER": "APPROVE",
+      "count": 52
+    },
+    {
+      "ADJUSTED_BEFORE": "REJECT",
+      "ADJUSTED_AFTER": "REJECT",
+      "count": 564
+    }
+  ]
+}

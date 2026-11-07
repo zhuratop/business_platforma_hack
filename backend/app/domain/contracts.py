@@ -69,15 +69,33 @@ class Fact(TypedDict):
     CNT: int
     APP_IDS: list[str]
 
-DIMENSIONS = ['SOURCE', 'PREFIX', 'CLASS', 'SUFFIX', 'ARRAY_KEY', 'KEY', 'PATH',
+FACT_DIMENSIONS = ['SOURCE', 'PREFIX', 'CLASS', 'SUFFIX', 'ARRAY_KEY', 'KEY', 'PATH',
               'VALUE_ADJUSTED', 'DIFF_FLAG', 'CHANGE_TYPE', 'product_id', 'partner_id',
               'DECISION_BEFORE', 'DECISION_AFTER', 'DECISION_CHANGED', 'PARTNER_TYPE', 'ROUTING_METHOD']
+DIMENSIONS = FACT_DIMENSIONS + ['ADJUSTED_BEFORE', 'ADJUSTED_AFTER']
+DIMENSION_GROUPS = {
+    'Основные': ['PATH','SOURCE','CHANGE_TYPE','VALUE_ADJUSTED','ADJUSTED_BEFORE','ADJUSTED_AFTER'],
+    'Бизнес-разрезы': ['product_id','partner_id','DECISION_BEFORE','DECISION_AFTER','PARTNER_TYPE','ROUTING_METHOD'],
+    'Признаки для фильтрации': ['DIFF_FLAG','DECISION_CHANGED'],
+    'Технические': ['PREFIX','CLASS','SUFFIX','KEY','ARRAY_KEY'],
+}
+DIMENSION_LABELS = {
+    'PATH':'Атрибут', 'SOURCE':'Срез', 'CHANGE_TYPE':'Тип изменения', 'VALUE_ADJUSTED':'Значение / бакет среза',
+    'ADJUSTED_BEFORE':'Бакет до', 'ADJUSTED_AFTER':'Бакет после', 'product_id':'Продукт', 'partner_id':'Партнёр',
+    'DECISION_BEFORE':'Решение заявки до', 'DECISION_AFTER':'Решение заявки после',
+    'PARTNER_TYPE':'Набор типов партнёров заявки', 'ROUTING_METHOD':'Набор маршрутов заявки',
+    'DIFF_FLAG':'Есть различие', 'DECISION_CHANGED':'Решение заявки изменилось',
+    'PREFIX':'Начало пути', 'CLASS':'Класс', 'SUFFIX':'Продолжение пути', 'KEY':'Имя поля', 'ARRAY_KEY':'Ключи массивов',
+}
 
 class PivotRequest(BaseModel):
     rows: list[str] = Field(default_factory=lambda: ['PATH'])
     columns: list[str] = Field(default_factory=lambda: ['CHANGE_TYPE'])
     filters: dict[str, list[Any]] = Field(default_factory=dict)
     measure: Literal['unique_apps'] = 'unique_apps'
+    page: int = Field(default=1, ge=1)
+    page_size: int | None = Field(default=None, ge=1, le=250)
+    include_totals: bool = False
 
 class PivotCell(TypedDict):
     dimensions: dict[str, Any]

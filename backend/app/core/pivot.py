@@ -46,33 +46,87 @@ def where(filters):
         args.extend(values)
     return (' WHERE '+' AND '.join(clauses) if clauses else ''),args
 
+def relation(required):
+    """One read-only relation for cells, memberships and attribute highlighting.
+
+    Global attributes belong to each participating product/partner across the
+    pair, including products lost in one slice. Product attributes retain their
+    own source-specific association. Expand only when these dimensions are used.
+    Paired buckets come from each member's comparison row, not an aggregate's
+    current SOURCE bucket. Existing immutable run files need no migration.
+    """
+    product_scope = bool({'product_id','partner_id'} & set(required))
+    buckets = bool({'ADJUSTED_BEFORE','ADJUSTED_AFTER'} & set(required))
+    selection = 'f.*'
+    joins = ''
+    if product_scope:
+        selection = '''f.* EXCLUDE(product_id,partner_id),
+            CASE WHEN f.product_id='' THEN coalesce(p.product_id,'') ELSE f.product_id END AS product_id,
+            CASE WHEN f.product_id='' THEN coalesce(p.partner_id,'') ELSE f.partner_id END AS partner_id'''
+        joins += ''' LEFT JOIN (SELECT DISTINCT APP_ID,product_id,partner_id FROM product_trials) p
+            ON f.product_id='' AND p.APP_ID=m.APP_ID'''
+    if buckets:
+        selection += ',c.ADJUSTED_BEFORE,c.ADJUSTED_AFTER'
+        joins += ''' JOIN comparison_mart c ON c.APP_ID=m.APP_ID
+            AND c.PATH=f.PATH AND c.ARRAY_KEY=f.ARRAY_KEY'''
+    return f'''WITH scoped AS (SELECT {selection},m.APP_ID
+        FROM pivot_facts f JOIN fact_memberships m USING(fact_id){joins}) '''
+
 def cells(con,run_id,request):
     dimensions = request.rows+request.columns
     if any(d not in DIMENSIONS for d in dimensions) or len(set(dimensions))!=len(dimensions) or len(dimensions)>8:
         raise ValueError('Invalid or duplicate pivot dimensions; max 8')
     clause,args = where(request.filters)
     cols = ','.join('f."'+d+'"' for d in dimensions)
-    sql = 'SELECT '+(cols+',' if cols else '')+'count(DISTINCT m.APP_ID) AS count FROM pivot_facts f JOIN fact_memberships m USING(fact_id)'+clause+(' GROUP BY '+cols+' ORDER BY '+cols if cols else '')+' LIMIT 5001'
-    rows = records(con,sql,args)
-    truncated = len(rows)>5000
+    prefix = relation(dimensions+list(request.filters))
+    grouped = 'SELECT '+(cols+',' if cols else '')+'count(DISTINCT f.APP_ID) AS count FROM scoped f'+clause+(' GROUP BY '+cols if cols else '')
+    totals = None
+    if request.include_totals or request.page_size is not None:
+        col_cols = ','.join('f."'+d+'"' for d in request.columns)
+        total_sql = prefix+'SELECT '+(col_cols+',' if col_cols else '')+'count(DISTINCT f.APP_ID) AS count FROM scoped f'+clause+(' GROUP BY '+col_cols+' ORDER BY '+col_cols if col_cols else '')+' LIMIT 129'
+        totals = records(con,total_sql,args)
+        if len(totals)>128:
+            raise ValueError('Слишком много колонок сводной (более 128). Уточните фильтры или перенесите измерение в строки.')
+    total_rows = None
+    if request.page_size is not None:
+        row_cols = ','.join('"'+d+'"' for d in request.rows)
+        ranked = prefix+', grouped AS ('+grouped+'), ranked AS (SELECT *, '+('dense_rank() OVER(ORDER BY '+row_cols+')' if row_cols else '1')+' AS _row_num FROM grouped) '
+        total_rows = con.execute(ranked+'SELECT coalesce(max(_row_num),0) FROM ranked',args).fetchone()[0]
+        first = (request.page-1)*request.page_size+1
+        sql = ranked+'SELECT * EXCLUDE(_row_num) FROM ranked WHERE _row_num BETWEEN ? AND ?'+(' ORDER BY '+','.join('"'+d+'"' for d in dimensions) if dimensions else '')
+        rows = records(con,sql,args+[first,first+request.page_size-1])
+        # A row page is complete, including every matching column combination.
+        truncated = False
+    else:
+        rows = records(con,prefix+grouped+(' ORDER BY '+cols if cols else '')+' LIMIT 5001',args)
+        truncated = len(rows)>5000
     result = []
-    for row in rows[:5000]:
+    for row in (rows if request.page_size is not None else rows[:5000]):
         dims = {d:row[d] for d in dimensions}
         merged = dict(request.filters)
         merged.update({k:[v] for k,v in dims.items()})
         result.append(dict(dimensions=dims,count=row['count'],cell_token=token(run_id,merged)))
-    return dict(cells=result,dimensions=DIMENSIONS,truncated=truncated,unit='unique APP_ID per cell; counts across cells are non-additive')
+    response = dict(cells=result,dimensions=DIMENSIONS,truncated=truncated,
+                    pagination=dict(page=request.page,page_size=request.page_size,total_rows=total_rows),
+                    unit='unique APP_ID per cell; counts across cells are non-additive')
+    if totals is not None:
+        response['column_totals'] = [dict(dimensions={d:r[d] for d in request.columns},count=r['count'],
+            cell_token=token(run_id,{**request.filters,**{d:[r[d]] for d in request.columns}})) for r in totals]
+        total = con.execute(prefix+'SELECT count(DISTINCT f.APP_ID) FROM scoped f'+clause,args).fetchone()[0]
+        response['grand_total'] = dict(dimensions={},count=total,cell_token=token(run_id,request.filters))
+    return response
 
 def apps(con,filters,page=1,page_size=50):
     if page<1 or not 1<=page_size<=200:
         raise ValueError('Invalid page')
     clause,args = where(filters)
-    from_sql = ' FROM pivot_facts f JOIN fact_memberships m USING(fact_id)'+clause
-    total = con.execute('SELECT count(DISTINCT m.APP_ID)'+from_sql,args).fetchone()[0]
-    ids = [r[0] for r in con.execute('SELECT DISTINCT m.APP_ID'+from_sql+' ORDER BY m.APP_ID LIMIT ? OFFSET ?',args+[page_size,(page-1)*page_size]).fetchall()]
+    from_sql = ' FROM scoped f'+clause
+    prefix = relation(filters)
+    total = con.execute(prefix+'SELECT count(DISTINCT f.APP_ID)'+from_sql,args).fetchone()[0]
+    ids = [r[0] for r in con.execute(prefix+'SELECT DISTINCT f.APP_ID'+from_sql+' ORDER BY f.APP_ID LIMIT ? OFFSET ?',args+[page_size,(page-1)*page_size]).fetchall()]
     return dict(app_ids=ids,total=total,page=page,page_size=page_size)
 
 def matching_attributes(con,app_id,filters):
     clause,args = where(filters)
-    clause += (' AND ' if clause else ' WHERE ')+'m.APP_ID=?'
-    return {(r['PATH'],r['ARRAY_KEY']) for r in records(con,'SELECT DISTINCT f.PATH,f.ARRAY_KEY FROM pivot_facts f JOIN fact_memberships m USING(fact_id)'+clause,args+[app_id])}
+    clause += (' AND ' if clause else ' WHERE ')+'f.APP_ID=?'
+    return {(r['PATH'],r['ARRAY_KEY']) for r in records(con,relation(filters)+'SELECT DISTINCT f.PATH,f.ARRAY_KEY FROM scoped f'+clause,args+[app_id])}

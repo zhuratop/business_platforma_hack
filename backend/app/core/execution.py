@@ -4,6 +4,7 @@ import json
 from pathlib import Path
 from backend.app.storage import meta
 from backend.app.plugins.defaults import ROOT,default_params
+from backend.app.core.check_display import threshold
 
 class LimitedOutput(io.StringIO):
     def write(self,s):
@@ -67,6 +68,6 @@ def run_checks(mart,snaps,check_ids,params,event=lambda *a:None):
                 raise ValueError('CHECK APP_IDS contract violation')
             if not all(isinstance(r[k],int) and r[k]>=0 for k in ['CNT','TOTAL']) or not isinstance(r['METRIC'],(int,float)):
                 raise ValueError('CHECK numeric contract violation')
-            result.append({**r,'check_id':check['id'],'snapshot_id':id})
+            result.append({**r,'check_id':check['id'],'snapshot_id':id,'threshold':threshold(check['id'],p,check)})
         event(id,len(rows))
     return result

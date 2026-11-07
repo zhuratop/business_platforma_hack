@@ -1,0 +1,32 @@
+import {formatNumber,formatP,formatPercent,formatPoints,formatInterval} from './statFormat';
+import './statistics.css';
+
+const count=(v:unknown)=>typeof v==='number'&&Number.isFinite(v)?v.toLocaleString('ru-RU',{maximumFractionDigits:4}):'—';
+type FamilyRow={group:string;group_name?:string;name_available?:boolean;n:number;before:number;after:number;
+ delta:number|null;ci:number[]|null;p:number;p_adjusted:number;information:string;coverage?:Record<string,number>;appeared?:number;disappeared?:number};
+export function StatisticsPage({stats}:{stats:any}){
+ const confidence=formatNumber((1-(stats.alpha??0.05))*100);
+ return <div className="statistics-page"><section className="panel"><div className="panel-heading"><h2>Парное сравнение заявок</h2><span className="tag">ДОВЕРИТЕЛЬНЫЙ ИНТЕРВАЛ {confidence}%</span></div><p className="muted">{stats.interpretation}</p>
+ <div className="stat-grid"><StatCard title="Одобрение заявок" stat={stats.app_approval_rate} percentage confidence={confidence}/><StatCard title="Одобрено продуктов на заявку" stat={stats.approved_products} percentage={false} confidence={confidence}/><StatCard title="Вероятность одобрения" stat={stats.target_score} percentage confidence={confidence}/></div>
+ <p className="statistics-units">BEFORE и AFTER — в процентах; изменение AFTER − BEFORE и его CI — в процентных пунктах (п.п.). Например: 50% → 40% означает −10 п.п. Уровень доверия CI — в процентах. Вероятность сравнивается на сопоставимых продуктах с одинаковым названием и типом модели. Для количества продуктов на заявку сохранена единица «продукта / заявку».</p>
+ <details className="statistics-method"><summary>Как рассчитана статистика</summary><p>Парный bootstrap по APP_ID: {count(stats.bootstrap)} повторений, seed {stats.seed}, α = {formatNumber(stats.alpha)}. Для бинарных исходов — точный тест Мак-Немара; для семейств — поправка Холма. Отсутствие значимости не доказывает сохранение метрики.</p></details></section>
+ <section className="panel"><div className="panel-heading"><h2>Сравнение по продуктам и партнёрам</h2><span className="tag">ПАРНЫЕ НАБЛЮДЕНИЯ</span></div><p className="muted">Продукт сравнивается на заявках, где он присутствует в обоих срезах. Для партнёра оценивается наличие одобренной попытки у заявки на сопоставимых продуктах. Поправка Холма применяется внутри каждого заранее заданного семейства.</p>
+ {Object.entries(stats.families||{}).map(([family,items])=><FamilyTable key={family} family={family} rows={items as FamilyRow[]} confidence={confidence}/>)}
+ <p className="hint">Названия взяты из ответов этого прогона. Если название отсутствует, показан идентификатор с пояснением. p-value округляется максимум до четырёх знаков; очень малые значения сохраняются в научной записи. Подгруппы служат диагностике и не разрешают выпуск стратегии автоматически.</p></section>
+ <section className="panel"><h2>Анализ сопоставимости</h2><div className="grid-two compact">{stats.strata?.external_unchanged&&<StatCard title="Внешний скор не менялся" stat={stats.strata.external_unchanged} percentage confidence={confidence}/>}</div><p className="hint">Изменение доли одобрений среди заявок с неизменным внешним скором. Сравнение подгруппы с неизменным входом не доказывает причинный эффект.</p></section>
+ <p className="muted statistics-availability">Риск дефолта, лимиты и денежный эффект недоступны без дополнительных данных.</p></div>
+}
+
+function StatCard({title,stat,percentage,confidence}:{title:string;stat:any;percentage:boolean;confidence:string}){
+ const baseline=percentage?(stat.baseline||{}):stat;
+ const delta=percentage?formatPoints(stat.delta,true):formatNumber(stat.delta);
+ return <div className="stat"><h3>{title}</h3><b className={stat.delta<0?'stat-negative':''}>{delta}</b><span className="stat-unit">{percentage?' изменение AFTER − BEFORE':' продукта / заявку'}</span>
+ <p className="stat-ci">CI {confidence}%: <strong>{formatInterval(stat.ci,percentage)}</strong></p>
+ {typeof baseline.before==='number'&&typeof baseline.after==='number'&&<div className="stat-before-after"><span>BEFORE <b>{percentage?formatPercent(baseline.before):count(baseline.before)}</b></span><span>→</span><span>AFTER <b>{percentage?formatPercent(baseline.after):count(baseline.after)}</b></span></div>}
+ <small>Пар заявок: {count(stat.n)}{stat.p!==undefined&&<> · p = <span title={String(stat.p)}>{formatP(stat.p)}</span></>}<br/>{stat.lost!==undefined&&<>Потеряно одобрений: {count(stat.lost)} · новых: {count(stat.gained)}</>}{stat.information==='insufficient'&&<span className="stat-insufficient">Недостаточно информации для вывода</span>}</small></div>
+}
+
+function FamilyTable({family,rows,confidence}:{family:string;rows:FamilyRow[];confidence:string}){
+ const product=family==='products';
+ return <div className="stats-family"><h3>{product?'Продукты':family==='partners'?'Партнёры':family}</h3>{rows.length?<div className="table-wrap"><table className="stats-family-table"><thead><tr><th>{product?'Продукт':'Партнёр'}</th><th title="Парные заявки, пригодные для сравнения">Пар заявок</th><th>Одобрено BEFORE, %</th><th>Одобрено AFTER, %</th><th title="Абсолютное изменение доли AFTER − BEFORE в процентных пунктах">Разница, п.п.</th><th>CI {confidence}%, п.п.</th><th>p-value</th><th>p с поправкой Холма</th><th>Данные</th></tr></thead><tbody>{rows.map(r=><tr key={r.group}><td className="stats-group-name" title={'ID: '+r.group}><b>{r.group_name||(product?'Продукт ':'Партнёр ')+r.group}</b>{r.name_available===false&&<small>Название отсутствует в данных</small>}{r.coverage&&<small>Присутствует в срезах: {count(r.coverage.BEFORE||0)} → {count(r.coverage.AFTER||0)}</small>}{!!((r.appeared||0)+(r.disappeared||0))&&<small>Появились: {count(r.appeared||0)} · исчезли: {count(r.disappeared||0)}</small>}</td><td>{count(r.n)}</td><td>{r.n?formatPercent(r.before/r.n):'—'}<small>{count(r.before)} / {count(r.n)}</small></td><td>{r.n?formatPercent(r.after/r.n):'—'}<small>{count(r.after)} / {count(r.n)}</small></td><td className={'stats-delta '+(r.delta!=null&&r.delta<0?'negative':'')}>{formatPoints(r.delta,true)}</td><td className="stats-ci">{formatInterval(r.ci)}</td><td title={String(r.p)}>{r.n?formatP(r.p):'—'}</td><td title={String(r.p_adjusted)}>{r.n?formatP(r.p_adjusted):'—'}</td><td><span className={'badge '+(r.information==='insufficient'?'':'success')}>{r.information==='insufficient'?'Недостаточно':'Достаточно'}</span></td></tr>)}</tbody></table></div>:<p className="muted">Группы не заданы в конфигурации.</p>}</div>
+}

@@ -3,7 +3,7 @@ from collections import defaultdict
 from contextlib import contextmanager
 import duckdb
 import pandas as pd
-from backend.app.domain.contracts import DIMENSIONS
+from backend.app.domain.contracts import FACT_DIMENSIONS
 
 NORMALIZED = dict(APP_ID='VARCHAR',SOURCE='VARCHAR',PREFIX='VARCHAR',CLASS='VARCHAR',SUFFIX='VARCHAR',ARRAY_KEY='VARCHAR',KEY='VARCHAR',PATH='VARCHAR',VALUE='VARCHAR',ADJUSTED_VALUE='VARCHAR',VALUE_KIND='VARCHAR')
 COMPARISON = {**{k:v for k,v in NORMALIZED.items() if k not in ['SOURCE','VALUE','ADJUSTED_VALUE','VALUE_KIND']},
@@ -14,7 +14,7 @@ SEGMENTS['DECISION_CHANGED'] = 'INTEGER'
 TRIALS = {k:'VARCHAR' for k in ['APP_ID','SOURCE','product_id','decision','partner_id','partner_type','pd_model','target_score_type','cutoff_name']}
 TRIALS.update(target_score='DOUBLE',cutoff_value='DOUBLE',epr='DOUBLE')
 OFFERS = dict(APP_ID='VARCHAR',SOURCE='VARCHAR',product_id='VARCHAR',type='VARCHAR',rank='INTEGER')
-FACTS = {k:('INTEGER' if k in ['DIFF_FLAG','DECISION_CHANGED'] else 'VARCHAR') for k in DIMENSIONS}
+FACTS = {k:('INTEGER' if k in ['DIFF_FLAG','DECISION_CHANGED'] else 'VARCHAR') for k in FACT_DIMENSIONS}
 FACTS.update(fact_id='BIGINT',CNT='INTEGER')
 SCHEMAS = dict(normalized_union=NORMALIZED,comparison_mart=COMPARISON,app_segments=SEGMENTS,product_trials=TRIALS,offers=OFFERS,pivot_facts=FACTS,fact_memberships={'fact_id':'BIGINT','APP_ID':'VARCHAR'})
 KEYS = dict(normalized_union=['APP_ID','SOURCE','PATH','ARRAY_KEY'],comparison_mart=['APP_ID','PATH','ARRAY_KEY'],app_segments=['APP_ID'],product_trials=['APP_ID','SOURCE','product_id'],offers=['APP_ID','SOURCE','product_id','type'],fact_memberships=['fact_id','APP_ID'])
@@ -113,7 +113,7 @@ class MartAPI:
         self.con.execute('ALTER TABLE enriched ADD COLUMN partner_id VARCHAR')
         self.con.execute("UPDATE enriched e SET partner_id=t.partner_id FROM product_trials t WHERE e.APP_ID=t.APP_ID AND e.SOURCE=t.SOURCE AND e.product_id=t.product_id")
         self.con.execute("UPDATE enriched SET partner_id='' WHERE partner_id IS NULL")
-        dims = ','.join('"'+d+'"' for d in DIMENSIONS)
+        dims = ','.join('"'+d+'"' for d in FACT_DIMENSIONS)
         group_dims = dims.replace('"VALUE_ADJUSTED"','"ADJUSTED_VALUE" AS "VALUE_ADJUSTED"')
         for r in records(self.con, f'SELECT {group_dims},count(DISTINCT APP_ID)::INTEGER AS CNT,list_sort(list(DISTINCT APP_ID)) AS APP_IDS FROM enriched GROUP BY ALL'):
             yield r
