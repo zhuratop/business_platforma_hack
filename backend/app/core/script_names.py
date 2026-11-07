@@ -11,7 +11,7 @@ CHECK_NAMES = {
     'external_score_drift': ('Изменение внешнего скора и входных данных', 'Сопоставляет изменение внешнего скора, входных признаков и итогового решения.'),
     'stop_factor_disappeared': ('Исчезновение или отключение стоп-факторов', 'Показывает исчезнувшие правила и переход сработавшего стоп-фактора в несработавший.'),
     'target_model_changed': ('Смена целевой модели и порога', 'Показывает смену целевой модели и сопутствующее изменение порога.'),
-    'my_changes': ('Наличие изменений в ответах', 'Находит заявки с любыми изменениями атрибутов; FAIL, если такие заявки есть.'),
+    'my_changes': ('Доля изменений в пределах порога', 'Сравнивает долю изменённых заявок с параметром max_share. 30% — демонстрационный допуск, не критерий безопасности.'),
 }
 
 
@@ -37,6 +37,7 @@ def named_scripts(scripts):
         row = dict(script)
         if row.get('kind') == 'check':
             metadata = check_metadata(row.get('code',''))
+            row['check_id'] = metadata.get('id')
             generic = bool(re.match(r'^Моя проверка(?:\b|\.)',row.get('name',''),re.I))
             known = CHECK_NAMES.get(metadata.get('id'))
             if known and (generic or row.get('name','').startswith('check_')):

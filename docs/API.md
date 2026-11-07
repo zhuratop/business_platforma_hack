@@ -1,5 +1,7 @@
 # A0 — contracts
 
+Дополнение входных форматов: `/datasets/register` и `/datasets/upload` принимают JSON/XML/CSV в каталогах срезов (один файл на APP_ID). Схема `manifest.json` прежняя; расширения пары могут различаться. У датасета добавлено поле `formats`. В `/scripts` и `/scripts/upload?kind=reader` разрешён тип `reader`, точка входа `read_input(raw,filename,app_id,source,params)->dict`. В `/configs` добавлен `stages.reader`; старые конфигурации получают стандартный читатель. `/scripts/validate` принимает необязательный `dataset_id` владельца и проверяет читатель на его первой паре. В состоянии прогона добавлены `saved_pairs`, `normalized_rows`, `saved_at` — счётчики зафиксированных полных пар. Размер порции: `params.processing.batch_pairs`, 1–500, по умолчанию 25. См. [INPUT_FORMATS.md](INPUT_FORMATS.md).
+
 Authoritative DTO: `backend/app/domain/contracts.py`, frontend: `frontend/src/types.ts`.
 All JSON responses: `{id, status, data}`; failures `{id:null,status:"error",error:{code,message,details}}`.
 Authentication: opaque HttpOnly session cookie. Ownership checked for every object.
@@ -11,6 +13,20 @@ API prefix `/api`: `POST /auth/login`, `POST /auth/logout`, `GET /auth/me`;
 `GET /runs/{id}/summary`, `/stats`, `/checks`; `POST /runs/{id}/checks`;
 `POST /runs/{id}/pivot`, `/pivot/apps`; `GET /runs/{id}/apps/{app_id}`;
 `GET /runs/{id}/report.html`.
+
+Staged runs: `POST /runs` and saved configs accept `stop_after` (default REPORTING).
+Values in order: READING, NORMALIZING, COMPARING, FACTS, CHECKS, STATS, REPORTING.
+A successful partial execution has status PAUSED. Public runs include `completed_stage`,
+`stop_after`, `checkpoints` (stage, label, completed_at, seconds, counts; no filesystem paths).
+`POST /runs/{id}/resume {stop_after: ...}` atomically queues a PAUSED/FAILED owned run,
+returning 409 if already active or the target is not after the completed stage.
+It retains the original procedure/config snapshots and reuses completed artifacts.
+`GET /runs/{id}/preview?table=raw_inputs&limit=10` reads the latest immutable completed
+checkpoint, not the scratch file. Tables are allowlisted by completed stage; result:
+`{stage,table,tables,total,rows}`. CHECKS/STATS also expose `checks`/`stats` preview tables.
+Other owners receive 404. Reporting/pivot remain gated by READY. Bootstrap includes
+`pipeline_stages` (id,label). The supervisor defaults to two concurrent task processes,
+bounded by --workers/SPR_WORKERS; SQLite claims are atomic across users.
 
 Pivot uses only whitelisted dimensions, unique APP_ID and full fact memberships.
 Signed cell tokens include run, dimensions and filters; details highlight matching PATH/ARRAY_KEY.
@@ -121,7 +137,7 @@ The statistics UI and HTML now display only `families.products`, labelled
 or second table. `families.partners` remains in the API for compatibility. Product
 cohorts and their Holm correction are unchanged; families are not merged or summed.
 
-Dataset registration/upload reuses an existing dataset with the same owner and full
+Dataset registration/upload reuses an existing active dataset with the same owner and full
 SHA-256 checksum, regardless of submitted display name. Lookup and insert occur in
 one BEGIN IMMEDIATE transaction, so concurrent imports cannot add duplicates. A
 redundant newly copied snapshot is removed; published snapshots are preserved.
@@ -130,15 +146,62 @@ GET /api/datasets and bootstrap.datasets return one representative per owner/che
 remain readable by their owner and usable by existing runs. Same names with different
 checksums remain separate; equal checksums belonging to other users are not reused.
 
+DELETE /api/datasets/{id} is owner-only (foreign/missing IDs return 404) and marks
+all active owner/checksum copies DELETED with deleted_at in one transaction.
+Returns `{deleted:true,hidden_snapshots:n}`. Lists/bootstrap and registration exclude
+DELETED snapshots. Existing/queued runs retain their dataset records and files;
+POST /runs with a deleted dataset returns 409. Reimport creates a new active ID.
+Deletion is idempotent; replaying deletion of an old ID cannot delete a new import.
+UI confirmation explains removal from the list and retention of existing runs.
+
 Current script lists (/scripts and bootstrap.scripts) additionally expose
 `display_name` and `description` for checks. CHECK id/label are read with ast.parse,
 never exec. Generic template names receive a semantic label and identical template
 copies receive stable ordinal suffixes. The configuration UI uses these fields;
 stored names, IDs, params, code and historical run snapshots stay unchanged.
 
+Check scripts also expose a statically extracted `check_id` for configuration UI:
+an unchecked copy is disabled while another selected script has the same CHECK.id.
+
+The custom `my_changes` template now accepts `max_share` (default .30, explicitly a
+demonstration tolerance). A nonempty dataset passes iff its unrounded fraction of
+unique changed APP_ID is <= max_share. Results retain the actual count/share and
+explicit threshold metadata; empty datasets fail with LOW confidence. The five
+provided CHECK files and their verdict logic are unchanged.
+
+The separate synthetic demonstration endpoint/view/artifact have been removed.
+Current real-run config overrides for alice: ar_drop_by_product.max_drop_rel=.30,
+attribute_new_loss.min_share=.10, my_changes.max_share=.30. The attribute parameter
+is a reporting relevance cutoff, not a fake PASS override: signals below 10% are
+omitted by the unchanged supplied implementation, signals above remain FAIL.
+Checks without a PASS/FAIL threshold retain their original verdicts. Configuration
+overrides are snapshot-versioned when checks are re-executed, not applied retroactively.
+
+The default normalize/compare/facts files now contain their complete executable
+implementations and local helpers, using standard-library imports only. They no
+longer delegate algorithms to backend imports or MartAPI.default_facts. The facts
+procedure still receives MartAPI as its declared input and uses its DuckDB connection
+for the fully visible aggregation SQL. File lists/validation/snapshots read the same
+complete source. Copying a file into the editor therefore requires no hidden module
+dependency. Existing historical snapshots are not rewritten; universal core APIs
+remain available and compatibility is covered by real-pair contract tests.
+
 Tables: SQLite users/sessions/datasets/scripts/configs/runs/run_events/check_executions;
 DuckDB normalized_union/comparison_mart/app_segments/product_trials/offers/pivot_facts/fact_memberships.
 Exact logical keys follow tech_spec §4, enforced by unique indexes.
+
+POST /api/runs/{id}/pivot/tree (owner-only, READY) accepts TreeRequest:
+`path` (prefix/attribute), `stage: path|keys|values`, optional `array_key`,
+`filters` (only SOURCE / DIFF_FLAG), `page>=1`, `page_size<=100` (default 50).
+Returns lazy child nodes with typed values, full array keys, signed count cells,
+scope totals and pagination. Counts use distinct APP_ID over normalized_union joined
+to comparison_mart; sources/types/buckets remain separate, raw DIFF_FLAG is preserved.
+Folder scopes include all descendants; scalar values at mixed scalar/object paths
+are exposed alongside child fields. No raw-response reread or mart mutation occurs.
+Existing /pivot/apps and application highlighting accept signed `__tree` scopes;
+they reuse the identical predicates (prefix/exact path, full array key, kind, bucket,
+source and diff). The UI preset id is attributes_tree; normal pivot requests and
+the compact strategy are unchanged.
 
 PivotRequest additionally accepts `collapse_unchanged: true` with columns
 `[DIFF_FLAG,SOURCE]` and `include_totals: true`. Standard cells/totals remain unchanged.

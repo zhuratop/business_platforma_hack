@@ -22,4 +22,7 @@ VIEWS = [
      'description':'Бакет до × бакет после для одного атрибута. PATH можно заменить в фильтрах.',
      'rows':['ADJUSTED_BEFORE'],'columns':['ADJUSTED_AFTER'],
      'filters':{'PATH':['decisionResult.decision']}},
+    {'id':'attributes_tree','label':'Все атрибуты · дерево JSON',
+     'description':'Все атрибуты сохранённой нормализации: раскрытие узлов, ключей массивов и значений; уникальные заявки.',
+     'rows':['PATH','ARRAY_KEY','VALUE_ADJUSTED'],'columns':COMPARISON,'filters':{},'presentation':'tree'},
 ]

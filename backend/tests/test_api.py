@@ -139,8 +139,8 @@ def test_check_files_unchanged_and_report_link(env):
     response=alice.get(f'/api/runs/{rid}/report.html?download=true')
     assert response.status_code==200
     assert 'attachment' in response.headers['content-disposition']
-    assert meta.PUBLIC_BASE_URL+'/?run='+rid+'&amp;tab=pivot' in response.text
-    assert 'APPROVAL_PROBABILITY' in response.text
+    assert 'http://testserver/?run='+rid+'&amp;tab=pivot' in response.text
+    assert 'Вероятность одобрения' in response.text
 
 def test_snapshot_codes_immutable_and_no_partial_summary(env):
     alice,_,ds,cfg,_=env

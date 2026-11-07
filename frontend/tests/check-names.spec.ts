@@ -16,6 +16,6 @@ test('configuration explains check names and distinguishes identical templates',
  }
  await page.getByRole('button',{name:'Python-процедуры',exact:true}).click();
  await page.getByRole('button',{name:'Новая проверка',exact:true}).last().click();
- await expect(page.getByRole('textbox',{name:'Название',exact:true})).toHaveValue('Наличие изменений в ответах.py');
- await expect(page.getByRole('textbox',{name:'Редактор Python',exact:true})).toHaveValue(/Наличие изменений в ответах/);
+ await expect(page.getByRole('textbox',{name:'Название',exact:true})).toHaveValue('Доля изменений в пределах порога.py');
+ await expect(page.getByRole('textbox',{name:'Редактор Python',exact:true})).toHaveValue(/Доля изменений в пределах порога/);
 });

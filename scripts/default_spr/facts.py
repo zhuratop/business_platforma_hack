@@ -1,5 +1,47 @@
 """Domain-specific dimensions and separate product/offer grains."""
-from backend.app.core.normalize import canonical
+import math
+from decimal import Decimal
+
+
+def canonical(value):
+    if value is None:
+        return 'NULL', 'null'
+    if isinstance(value, bool):
+        return str(value).lower(), 'boolean'
+    if isinstance(value, (int, float)):
+        if isinstance(value, float) and not math.isfinite(value):
+            raise ValueError('Non-finite JSON number')
+        return format(Decimal(str(value)).normalize(), 'f'), 'number'
+    if isinstance(value, str):
+        return value, 'string'
+    raise ValueError(f'Unsupported leaf: {type(value)}')
+
+
+FACT_DIMENSIONS = ['SOURCE', 'PREFIX', 'CLASS', 'SUFFIX', 'ARRAY_KEY', 'KEY', 'PATH', 'VALUE_ADJUSTED', 'DIFF_FLAG', 'CHANGE_TYPE', 'product_id', 'partner_id', 'DECISION_BEFORE', 'DECISION_AFTER', 'DECISION_CHANGED', 'PARTNER_TYPE', 'ROUTING_METHOD']
+
+
+def records(con,sql,args=None):
+    cursor = con.execute(sql,args or [])
+    cols = [d[0] for d in cursor.description]
+    return [dict(zip(cols,r)) for r in cursor.fetchall()]
+
+
+def aggregate_facts(mart, product_paths=()):
+    # Domain adapter supplies path associations; core only knows table contracts.
+    conditions = ' OR '.join('starts_with(n.PATH, ?)' for _ in product_paths) or 'FALSE'
+    sql = f'''SELECT n.*, c.DIFF_FLAG,c.CHANGE_TYPE,s.DECISION_BEFORE,s.DECISION_AFTER,s.DECISION_CHANGED,s.PARTNER_TYPE,s.ROUTING_METHOD,
+        CASE WHEN ({conditions}) THEN CASE WHEN starts_with(n.ARRAY_KEY,'[') THEN json_extract_string(split_part(n.ARRAY_KEY,'|',1),'$[0]') ELSE split_part(n.ARRAY_KEY,'|',1) END ELSE '' END AS product_id
+        FROM normalized_union n JOIN comparison_mart c USING(APP_ID,PATH,ARRAY_KEY) JOIN app_segments s USING(APP_ID)'''
+    # Use DuckDB for aggregation; Python sees aggregate memberships, not a browser-sized raw mart.
+    mart.con.execute('CREATE TEMP TABLE enriched AS '+sql,list(product_paths))
+    mart.con.execute('ALTER TABLE enriched ADD COLUMN partner_id VARCHAR')
+    mart.con.execute("UPDATE enriched e SET partner_id=t.partner_id FROM product_trials t WHERE e.APP_ID=t.APP_ID AND e.SOURCE=t.SOURCE AND e.product_id=t.product_id")
+    mart.con.execute("UPDATE enriched SET partner_id='' WHERE partner_id IS NULL")
+    dims = ','.join('"'+d+'"' for d in FACT_DIMENSIONS)
+    group_dims = dims.replace('"VALUE_ADJUSTED"','"ADJUSTED_VALUE" AS "VALUE_ADJUSTED"')
+    for r in records(mart.con, f'SELECT {group_dims},count(DISTINCT APP_ID)::INTEGER AS CNT,list_sort(list(DISTINCT APP_ID)) AS APP_IDS FROM enriched GROUP BY ALL'):
+        yield r
+    mart.con.execute('DROP TABLE enriched')
 
 
 def build_facts(mart, raw_pairs, params):
@@ -49,6 +91,6 @@ def build_facts(mart, raw_pairs, params):
 
     def pivot_facts():
         # Generic aggregation preserves typed presence and all memberships.
-        yield from mart.default_facts(product_paths=['decisionResult.product_trials.', 'decisionResult.available_offers.'])
+        yield from aggregate_facts(mart, product_paths=['decisionResult.product_trials.', 'decisionResult.available_offers.'])
 
     return dict(segments=segments(), product_trials=trials(), offers=offers(), pivot_facts=pivot_facts())

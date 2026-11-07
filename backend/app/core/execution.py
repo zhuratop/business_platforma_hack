@@ -3,7 +3,7 @@ import io
 import json
 from pathlib import Path
 from backend.app.storage import meta
-from backend.app.plugins.defaults import ROOT,default_params
+from backend.app.plugins.defaults import ROOT,default_params,DEFAULT_EXCLUSIONS
 from backend.app.core.check_display import threshold
 
 class LimitedOutput(io.StringIO):
@@ -17,11 +17,32 @@ def compile_script(snapshot):
     exec(compile(snapshot['code'],snapshot.get('path') or snapshot['name'],'exec'),namespace)
     return namespace
 
+def ensure_reader(owner):
+    existing = [s for s in meta.listing('scripts',owner) if s['kind']=='reader']
+    if existing:
+        return existing[0]['id']
+    file = ROOT/'scripts'/'default_spr'/'reader.py'
+    return meta.put('scripts',owner,dict(name=file.name,kind='reader',source='file',path=str(file),code=file.read_text(encoding='utf-8'),params={}))['id']
+
+
 def seed(owner):
-    if meta.listing('configs',owner):
+    configs = meta.listing('configs',owner)
+    if configs:
+        reader_id = ensure_reader(owner)
+        for config in configs:
+            changes = {}
+            if 'reader' not in config['stages']:
+                changes['stages'] = {**config['stages'],'reader':reader_id}
+            normalization = config.get('params',{}).get('normalize',{})
+            if normalization.get('exclude') == ['appData.request_id','appData.createDateTime']:
+                script = meta.get('scripts',config['stages']['normalize'],owner)
+                if script.get('source')=='file' and Path(script.get('path','')).resolve()==ROOT/'scripts'/'default_spr'/'normalize.py':
+                    changes['params'] = {**config['params'],'normalize':{**normalization,'exclude':list(DEFAULT_EXCLUSIONS)}}
+            if changes:
+                meta.update('configs',config['id'],**changes)
         return
     stages = {}
-    for kind in ['normalize','compare','facts']:
+    for kind in ['reader','normalize','compare','facts']:
         file = ROOT/'scripts'/'default_spr'/f'{kind}.py'
         s = meta.put('scripts',owner,dict(name=file.name,kind=kind,source='file',path=str(file),code=file.read_text(encoding='utf-8'),params={}))
         stages[kind] = s['id']
@@ -32,6 +53,8 @@ def seed(owner):
     meta.put('configs',owner,dict(name='СПР · основной контракт',stages=stages,checks=checks,params=default_params()))
 
 def snapshots(owner,config):
+    if 'reader' not in config['stages']:
+        config['stages'] = {**config['stages'],'reader':ensure_reader(owner)}
     result = {}
     for id in list(config['stages'].values())+config.get('checks',[]):
         s = meta.get('scripts',id,owner)

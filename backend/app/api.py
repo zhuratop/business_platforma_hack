@@ -15,7 +15,8 @@ from fastapi.exceptions import RequestValidationError
 from backend.app.storage import meta
 from backend.app.storage.mart import MartAPI
 from backend.app.core import importer,pivot
-from backend.app.core.execution import seed,snapshots
+from backend.app.core.attribute_tree import TreeRequest
+from backend.app.core.execution import seed,snapshots,ensure_reader
 from backend.app.domain.contracts import PivotRequest,DIMENSIONS,DIMENSION_GROUPS,DIMENSION_LABELS
 
 @asynccontextmanager
@@ -68,7 +69,9 @@ def owned_run(id,owner,ready=False):
     return run
 
 def public_run(run):
-    return {k:v for k,v in run.items() if k not in ['snapshots','stats','checks','summary','mart_path','owner_id']}
+    result = {k:v for k,v in run.items() if k not in ['snapshots','stats','checks','summary','mart_path','owner_id','checkpoints']}
+    result['checkpoints'] = [{k:v for k,v in point.items() if k!='path'} for point in run.get('checkpoints',[])]
+    return result
 
 def current_scripts(owner):
     scripts = meta.listing('scripts',owner)
@@ -108,9 +111,11 @@ def me(u=Depends(user)):
 def bootstrap(u=Depends(user)):
     seed(u['id'])
     from scripts.default_spr.pivot_views import VIEWS
+    from backend.app.core.pipeline import STAGES,LABELS
     return ok(dict(user=u,data_root=str(meta.DATA_ROOT),default_dataset=str(meta.DATA_ROOT/'data'/'RUN-20260827-0001'),
                    dimensions=DIMENSIONS,dimension_groups=DIMENSION_GROUPS,dimension_labels=DIMENSION_LABELS,pivot_views=VIEWS,files=[str(p) for p in (meta.ROOT/'scripts').rglob('*.py') if p.parent.name in ['default_spr','checks']],
                    datasets=meta.dataset_listing(u['id']),configs=meta.listing('configs',u['id']),scripts=current_scripts(u['id']),
+                   pipeline_stages=[dict(id=s,label=LABELS[s]) for s in STAGES],
                    runs=[public_run(r) for r in meta.listing('runs',u['id'])]))
 
 @app.get('/api/datasets')
@@ -145,9 +150,13 @@ def dataset(id:str,u=Depends(user)):
 def scripts(u=Depends(user)):
     return ok(current_scripts(u['id']))
 
+@app.delete('/api/datasets/{id}')
+def delete_dataset(id:str,u=Depends(user)):
+    return ok(meta.delete_dataset(u['id'],id),id)
+
 @app.post('/api/scripts')
 def save_script(body:dict=Body(...),u=Depends(user)):
-    if body.get('kind') not in ['normalize','compare','facts','check'] or body.get('source') not in ['editor','file']:
+    if body.get('kind') not in ['reader','normalize','compare','facts','check'] or body.get('source') not in ['editor','file']:
         raise ValueError('Invalid script kind/source')
     if body.get('id'):
         meta.get('scripts',body['id'],u['id'])
@@ -169,7 +178,7 @@ def save_script(body:dict=Body(...),u=Depends(user)):
 
 @app.post('/api/scripts/upload')
 def upload_script(file:UploadFile=File(...),kind:str='check',u=Depends(user)):
-    if not (file.filename or '').endswith('.py') or kind not in ['normalize','compare','facts','check']:
+    if not (file.filename or '').endswith('.py') or kind not in ['reader','normalize','compare','facts','check']:
         raise ValueError('Upload a .py file and valid kind')
     raw = file.file.read(1000001)
     if len(raw)>1000000:
@@ -192,7 +201,8 @@ def validate_script(body:dict=Body(...),u=Depends(user)):
     folder = meta.RUNTIME/'validation'
     folder.mkdir(parents=True,exist_ok=True)
     path = folder/(meta.uid()+'.json')
-    path.write_text(json.dumps(dict(script=s,params=body.get('params',{})),ensure_ascii=False),encoding='utf-8')
+    sample_dataset = meta.get('datasets',body['dataset_id'],u['id']) if body.get('dataset_id') else None
+    path.write_text(json.dumps(dict(script=s,params=body.get('params',{}),dataset=sample_dataset),ensure_ascii=False),encoding='utf-8')
     flags = {'creationflags':subprocess.CREATE_NO_WINDOW} if sys.platform=='win32' else {}
     try:
         result = subprocess.run([sys.executable,'-m','backend.app.core.validator',str(path)],cwd=meta.ROOT,timeout=20,capture_output=True,**flags)
@@ -209,9 +219,13 @@ def configs(u=Depends(user)):
 
 @app.post('/api/configs')
 def config(body:dict=Body(...),u=Depends(user)):
+    from backend.app.core.pipeline import stop_stage
+    target = stop_stage(body.get('stop_after','REPORTING'))
     if body.get('id'):
         meta.get('configs',body['id'],u['id'])
-    for kind in ['normalize','compare','facts']:
+    if 'reader' not in body['stages']:
+        body['stages']['reader'] = ensure_reader(u['id'])
+    for kind in ['reader','normalize','compare','facts']:
         s = meta.get('scripts',body['stages'][kind],u['id'])
         if s['kind']!=kind:
             raise ValueError('Script kind mismatch')
@@ -221,7 +235,10 @@ def config(body:dict=Body(...),u=Depends(user)):
     for v in body.get('params',{}).get('thresholds',{}).values():
         if v is not None and (not isinstance(v,(int,float)) or v<0):
             raise ValueError('Thresholds must be non-negative or null')
-    obj = meta.put('configs',u['id'],dict(name=body['name'],stages=body['stages'],checks=body.get('checks',[]),params=body.get('params',{})),id=body.get('id'))
+    batch_pairs = body.get('params',{}).get('processing',{}).get('batch_pairs',25)
+    if type(batch_pairs) is not int or not 1 <= batch_pairs <= 500:
+        raise ValueError('processing.batch_pairs must be an integer from 1 to 500')
+    obj = meta.put('configs',u['id'],dict(name=body['name'],stages=body['stages'],checks=body.get('checks',[]),params=body.get('params',{}),stop_after=target),id=body.get('id'))
     return ok(obj,obj['id'])
 
 @app.get('/api/runs')
@@ -230,10 +247,47 @@ def runs(limit:int=100,offset:int=0,u=Depends(user)):
 
 @app.post('/api/runs')
 def start_run(body:dict=Body(...),u=Depends(user)):
+    from backend.app.core.pipeline import stop_stage
     ds = meta.get('datasets',body['dataset_id'],u['id'])
+    if ds['status']=='DELETED':
+        raise HTTPException(409,'Датасет удалён. Выберите другой или импортируйте его заново.')
     cfg = meta.get('configs',body['config_id'],u['id'])
-    obj = meta.put('runs',u['id'],dict(dataset_id=ds['id'],config_id=cfg['id'],config=cfg,snapshots=snapshots(u['id'],cfg),total=ds['count'],progress=0),'QUEUED')
+    target = stop_stage(body.get('stop_after',cfg.get('stop_after','REPORTING')))
+    obj = meta.put('runs',u['id'],dict(dataset_id=ds['id'],config_id=cfg['id'],config=cfg,snapshots=snapshots(u['id'],cfg),total=ds['count'],progress=0,stop_after=target,checkpoints=[]),'QUEUED')
     return ok(public_run(obj),obj['id'],'QUEUED')
+
+@app.post('/api/runs/{id}/resume')
+def resume_run(id:str,body:dict=Body(default={}),u=Depends(user)):
+    owned_run(id,u['id'])
+    try:
+        run = meta.resume_run(id,u['id'],body.get('stop_after','REPORTING'))
+    except ValueError as exc:
+        raise HTTPException(409,str(exc))
+    meta.event(id,'QUEUED','Продолжение с последнего сохранённого этапа')
+    return ok(public_run(run),id,'QUEUED')
+
+@app.get('/api/runs/{id}/preview')
+def stage_preview(id:str,table:str='raw_inputs',limit:int=20,u=Depends(user)):
+    from backend.app.core.pipeline import checkpoint_tables
+    run = owned_run(id,u['id'])
+    if not run.get('checkpoints'):
+        raise HTTPException(409,'Пока нет завершённого сохранённого этапа')
+    point = run['checkpoints'][-1]
+    tables = checkpoint_tables(point['stage'])
+    if table not in tables:
+        raise ValueError('Эта таблица ещё не подготовлена')
+    # Only immutable completed artifacts may be opened while the worker writes.
+    size = min(max(limit,1),100)
+    if table=='checks':
+        rows = run.get('checks',[])[:size]
+    elif table=='stats':
+        rows = [dict(metric=key,value=value) for key,value in run.get('stats',{}).items()][:size]
+    else:
+        with duckdb.connect(point['path'],read_only=True) as con:
+            cursor = con.execute(f'SELECT * FROM "{table}" ORDER BY ALL LIMIT ?', [size])
+            columns = [d[0] for d in cursor.description]
+            rows = [dict(zip(columns,row)) for row in cursor.fetchall()]
+    return ok(dict(stage=point['stage'],table=table,tables=tables,total=point['counts'][table],rows=rows),id)
 
 @app.get('/api/runs/{id}')
 def run_state(id:str,u=Depends(user)):
@@ -314,6 +368,13 @@ def run_pivot(id:str,body:PivotRequest,u=Depends(user)):
         data = pivot.cells(con,id,body)
     return ok(data,id)
 
+@app.post('/api/runs/{id}/pivot/tree')
+def run_attribute_tree(id:str,body:TreeRequest,u=Depends(user)):
+    run=owned_run(id,u['id'],True)
+    from backend.app.core.attribute_tree import children
+    with duckdb.connect(run['mart_path'],read_only=True) as con:
+        return ok(children(con,id,body),id)
+
 @app.post('/api/runs/{id}/pivot/apps')
 def pivot_apps(id:str,body:dict=Body(...),u=Depends(user)):
     run = owned_run(id,u['id'],True)
@@ -336,10 +397,10 @@ def app_details(id:str,app_id:str,cell_token:str|None=None,u=Depends(user)):
         return ok(dict(app_id=app_id,rows=rows,segments=[s for s in mart.segments() if s['APP_ID']==app_id]),id)
 
 @app.get('/api/runs/{id}/report.html')
-def report(id:str,download:bool=False,u=Depends(user)):
+def report(id:str,request:Request,download:bool=False,u=Depends(user)):
     run = owned_run(id,u['id'],True)
     from backend.app.core.report import render
-    content = render(run,run['summary'],run['stats'],run.get('checks',[]))
+    content = render(run,run['summary'],run['stats'],run.get('checks',[]),public_base_url=str(request.base_url).rstrip('/'))
     disposition = f'attachment; filename="spr-{id}.html"' if download else 'inline'
     return Response(content,media_type='text/html',headers={'Content-Disposition':disposition,'Cache-Control':'no-store'})
 

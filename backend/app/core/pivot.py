@@ -142,6 +142,9 @@ def cells(con,run_id,request):
     return response
 
 def apps(con,filters,page=1,page_size=50):
+    if '__tree' in filters:
+        from backend.app.core.attribute_tree import apps as tree_apps
+        return tree_apps(con,filters['__tree'],page,page_size)
     if page<1 or not 1<=page_size<=200:
         raise ValueError('Invalid page')
     clause,args = where(filters)
@@ -152,6 +155,9 @@ def apps(con,filters,page=1,page_size=50):
     return dict(app_ids=ids,total=total,page=page,page_size=page_size)
 
 def matching_attributes(con,app_id,filters):
+    if '__tree' in filters:
+        from backend.app.core.attribute_tree import matching_attributes as tree_matching
+        return tree_matching(con,app_id,filters['__tree'])
     clause,args = where(filters)
     clause += (' AND ' if clause else ' WHERE ')+'f.APP_ID=?'
     return {(r['PATH'],r['ARRAY_KEY']) for r in records(con,relation(filters)+'SELECT DISTINCT f.PATH,f.ARRAY_KEY FROM scoped f'+clause,args+[app_id])}

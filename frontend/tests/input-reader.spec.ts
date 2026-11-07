@@ -1,0 +1,50 @@
+import {test,expect} from '@playwright/test';
+import path from 'node:path';
+
+test('configuration exposes full reader code and validates the selected dataset',async({page,context})=>{
+ test.setTimeout(30000);
+ await context.request.post('/api/auth/login',{data:{username:'alice',password:'demo'}});
+ await page.goto('/?tab=config');
+ const step=page.locator('.procedure').filter({hasText:'Чтение данных'});
+ await expect(step).toBeVisible();
+ await step.getByRole('button',{name:'Открыть код'}).click();
+ const editor=page.getByRole('textbox',{name:'Редактор Python',exact:true});
+ await expect(editor).toHaveValue(/def read_input\(raw, filename, app_id, source, params\)/);
+ await expect(editor).toHaveValue(/def csv_object/);
+ await expect(editor).toHaveValue(/def xml_object/);
+ await expect(editor).not.toHaveValue(/from backend/);
+ await page.getByRole('button',{name:'Проверить на паре',exact:true}).click();
+ await expect(page.locator('.preview')).toContainText('Контракт выполнен');
+ await expect(page.locator('.preview')).toContainText('BEFORE');
+ await expect(page.locator('.preview')).toContainText('AFTER');
+ await page.getByRole('button',{name:'Копия в редактор',exact:true}).click();
+ await expect(editor).toBeEditable();
+ await expect(page.getByLabel('Тип процедуры')).toHaveValue('reader');
+});
+
+test('mixed-format ZIP reaches a worker-built report through the interface',async({page,context})=>{
+ test.setTimeout(30000);
+ await context.request.post('/api/auth/login',{data:{username:'alice',password:'demo'}});
+ const boot=(await (await context.request.get('/api/bootstrap')).json()).data;
+ const config=structuredClone(boot.configs[0]);
+ delete config.id;
+ config.name='JSON / XML / CSV · 4 пары';
+ config.params.stats.bootstrap=100;
+ config.params.processing={batch_pairs:1};
+ const saved=await context.request.post('/api/configs',{data:config});expect(saved.ok()).toBeTruthy();
+ const configId=(await saved.json()).data.id;
+ await page.goto('/?tab=datasets');
+ await page.locator('.upload-panel input[type=file]').setInputFiles(path.resolve('../examples/multiformat-4-pairs.zip'));
+ await expect(page.getByText('ZIP проверен и сохранён',{exact:true})).toBeVisible();
+ const datasetRow=page.getByRole('row').filter({hasText:'multiformat-4-pairs.zip'});
+ await datasetRow.getByRole('button',{name:'Настроить'}).click();
+ await page.getByLabel('Сохранённые конфигурации').selectOption(configId);
+ await page.getByRole('button',{name:'Сохранить и запустить',exact:true}).click();
+ await expect(page.getByText(/Сохранено полных пар: 4 \/ 4/)).toBeVisible({timeout:20000});
+ const runId=new URL(page.url()).searchParams.get('run');
+ await expect.poll(async()=> (await (await context.request.get('/api/runs/'+runId)).json()).data.status,{timeout:20000}).toBe('READY');
+ const run=(await (await context.request.get('/api/runs/'+runId)).json()).data;
+ expect(run.saved_pairs).toBe(4);expect(run.normalized_rows).toBeGreaterThan(0);
+ const report=await context.request.get('/api/runs/'+runId+'/report.html');
+ expect(report.ok()).toBeTruthy();expect(await report.text()).toContain('Вероятность одобрения');
+});

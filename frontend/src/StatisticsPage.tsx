@@ -17,7 +17,6 @@ export function StatisticsPage({stats,runId}:{stats:any;runId:string}){
  <section className="panel"><div className="panel-heading"><h2>Сравнение по продуктам (компаниям)</h2><span className="tag">ПАРНЫЕ НАБЛЮДЕНИЯ</span></div><p className="muted">Продукт (компания) сравнивается на заявках, где продукт присутствует в обоих срезах. Поправка Холма применяется внутри заранее заданного семейства продуктов.</p>
  <FamilyTable rows={stats.families?.products||[]} confidence={confidence}/>
  <p className="hint">Названия взяты из ответов этого прогона. Если название отсутствует, показан идентификатор с пояснением. p-value округляется максимум до четырёх знаков; очень малые значения сохраняются в научной записи. Подгруппы служат диагностике и не разрешают выпуск стратегии автоматически.</p></section>
- <section className="panel"><h2>Анализ сопоставимости</h2><div className="grid-two compact">{stats.strata?.external_unchanged&&<StatCard title="Внешний скор не менялся" stat={stats.strata.external_unchanged} percentage confidence={confidence}/>}</div><p className="hint">Изменение доли одобрений среди заявок с неизменным внешним скором. Сравнение подгруппы с неизменным входом не доказывает причинный эффект.</p></section>
  <p className="muted statistics-availability">Риск дефолта, лимиты и денежный эффект недоступны без дополнительных данных.</p></div>
 }
 

@@ -11,6 +11,17 @@ from backend.app.storage.mart import initialize,write,MartAPI
 from backend.app.plugins.defaults import default_params
 from scripts.default_spr.normalize import normalize
 from scripts.default_spr.facts import build_facts
+from backend.app.core import importer
+
+
+def reader_preview(request, namespace):
+    dataset = request.get('dataset')
+    if dataset is None:
+        root = meta.ROOT/'backend'/'tests'/'fixtures'/'spr'
+        dataset = {'path':str(root),'dirs':{'BEFORE':'BEFORE','AFTER':'AFTER'}}
+    app,b,a = next(importer.pairs(dataset,namespace['read_input'],request.get('params',{})))
+    return app,[{'SOURCE':source,'APP_ID':app,'fields':len(response),'response':response}
+                for source,response in [('BEFORE',b),('AFTER',a)]]
 
 def main(path):
     request = json.loads(path.read_text(encoding='utf-8'))
@@ -19,6 +30,11 @@ def main(path):
     try:
         with contextlib.redirect_stdout(out),contextlib.redirect_stderr(out):
             ns = compile_script(script)
+            if script['kind']=='reader':
+                app_id,rows = reader_preview(request,ns)
+                result = dict(valid=True,rows=rows,stdout=out.getvalue(),sample=app_id)
+                path.with_suffix('.result.json').write_text(json.dumps(result,ensure_ascii=False),encoding='utf-8')
+                return
             sample_root = meta.DATA_ROOT/'samples'
             if not sample_root.exists():
                 sample_root = meta.ROOT/'backend'/'tests'/'fixtures'/'spr'

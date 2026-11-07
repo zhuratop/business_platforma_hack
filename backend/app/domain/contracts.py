@@ -1,10 +1,15 @@
 """A0: shared external contracts. JSON values retain type internally."""
-from typing import TypedDict, Literal, Any
+from typing import TypedDict, Literal, Any, Protocol
 from pydantic import BaseModel, Field
 
 Source = Literal['BEFORE', 'AFTER']
 ChangeType = Literal['SAME', 'VALUE_CHANGED', 'ATTRIBUTE_NEW', 'ATTRIBUTE_LOST']
-RunState = Literal['QUEUED', 'NORMALIZING', 'COMPARING', 'FACTS', 'CHECKS', 'STATS', 'REPORTING', 'READY', 'FAILED']
+RunState = Literal['QUEUED', 'READING', 'NORMALIZING', 'COMPARING', 'FACTS', 'CHECKS', 'STATS', 'REPORTING', 'PAUSED', 'READY', 'FAILED']
+
+class InputReader(Protocol):
+    def __call__(self, raw: bytes, filename: str, app_id: str, source: Source, params: dict) -> dict:
+        """Decode one source file to a JSON-compatible application object."""
+        ...
 
 class NormalizedRow(TypedDict):
     APP_ID: str

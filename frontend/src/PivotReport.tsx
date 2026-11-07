@@ -4,6 +4,7 @@ import type {PivotCell} from './types';
 import {dimensionOptions} from './pivotDimensions';
 import type {DimensionGroups,DimensionNames} from './pivotDimensions';
 import './pivotReport.css';
+import {AttributeTree} from './AttributeTree';
 
 export type Layout={rows:string[];columns:string[];filters:Record<string,unknown[]>};
 export type ReportView=Layout&{id:string;label:string;description:string;attributes?:Record<string,{block:string;key:string}>};
@@ -25,11 +26,14 @@ export function PivotReport(p:Props){
  const views=p.views.filter(v=>!['all','external'].includes(v.id));
  const [customMode,setCustomMode]=useState(false);
  const [settingsOpen,setSettingsOpen]=useState(false);
- useEffect(()=>{if(!p.data)p.onBuild()},[p.runId]);
+ const [treeMode,setTreeMode]=useState(false),[treeRefresh,setTreeRefresh]=useState(0);
+ useEffect(()=>{if(!treeMode&&!p.data)p.onBuild()},[p.runId,treeMode]);
  const current={rows:p.rows,columns:p.columns,filters:p.filters};
  const withoutScope=Object.fromEntries(Object.entries(p.filters).filter(([key])=>!['product_id','partner_id'].includes(key)));
- const selected=customMode?undefined:views.find(v=>stringify({rows:v.rows,columns:v.columns,filters:v.filters})===stringify({...current,filters:withoutScope}));
+ const selected=treeMode?views.find(v=>v.id==='attributes_tree'):customMode?undefined:views.find(v=>stringify({rows:v.rows,columns:v.columns,filters:v.filters})===stringify({...current,filters:withoutScope}));
  function selectView(id:string){
+  if(id==='attributes_tree'){setTreeMode(true);setCustomMode(false);setSettingsOpen(false);return}
+  setTreeMode(false);
   if(id==='custom'){setCustomMode(true);setSettingsOpen(true);return}
   const view=views.find(v=>v.id===id);
   if(view){setCustomMode(false);p.onView(view)}
@@ -40,16 +44,16 @@ export function PivotReport(p:Props){
  return <div className="pivot-report">
   <section className="report-toolbar panel">
    <div className="report-toolbar-top"><div className="report-identity"><span className="report-icon"><Table2 size={22}/></span><div><h2>BEFORE <span>MASTER</span><span className="report-versus">vs</span> AFTER <span>BETA</span></h2><p>Один набор заявок · две версии стратегии · проверяемые изменения</p></div></div><span className="report-population">{number(p.totalApps)}<small>пар заявок в прогоне</small></span></div>
-   <div className="report-preset-row"><label>Представление<select aria-label="Представление сводной" disabled={p.busy} value={selected?.id||'custom'} onChange={e=>selectView(e.target.value)}>{views.map(v=><option key={v.id} value={v.id}>{v.label}</option>)}<option value="custom">Своя раскладка</option></select></label><p>{selected?.description||'Настройте строки, колонки и фильтры, затем нажмите «Перестроить». Текущие настройки сохранены.'}</p><button className="primary" disabled={p.busy} onClick={p.onBuild}><RefreshCw size={15}/> Перестроить</button></div>
-   <details className="report-settings" open={settingsOpen} onToggle={e=>setSettingsOpen(e.currentTarget.open)}><summary><Settings2 size={15}/> Фильтры и раскладка <span>{Object.keys(p.filters).length} фильтров · {p.rows.length} измерений строк · {p.columns.length} колонок</span></summary>
+   <div className="report-preset-row"><label>Представление<select aria-label="Представление сводной" disabled={p.busy} value={selected?.id||'custom'} onChange={e=>selectView(e.target.value)}>{views.map(v=><option key={v.id} value={v.id}>{v.label}</option>)}<option value="custom">Своя раскладка</option></select></label><p>{selected?.description||'Настройте строки, колонки и фильтры, затем нажмите «Перестроить». Текущие настройки сохранены.'}</p><button className="primary" disabled={p.busy} onClick={()=>treeMode?setTreeRefresh(v=>v+1):p.onBuild()}><RefreshCw size={15}/> Перестроить</button></div>
+   {!treeMode&&<details className="report-settings" open={settingsOpen} onToggle={e=>setSettingsOpen(e.currentTarget.open)}><summary><Settings2 size={15}/> Фильтры и раскладка <span>{Object.keys(p.filters).length} фильтров · {p.rows.length} измерений строк · {p.columns.length} колонок</span></summary>
     {!selected&&<div className="button-row"><button className="secondary" onClick={()=>p.onRows([])}>Очистить строки</button><button className="secondary" onClick={()=>p.onColumns([])}>Очистить колонки</button><button className="secondary" onClick={()=>p.onFilters({})}>Сбросить фильтры</button></div>}
     <div className="pivot-controls"><DimensionSelect title="Строки" dimensions={p.dimensions.filter(d=>!p.columns.includes(d))} groups={p.groups} names={p.names} selected={p.rows} canAdd={p.rows.length+p.columns.length<8} onChange={p.onRows}/><DimensionSelect title="Колонки" dimensions={p.dimensions.filter(d=>!p.rows.includes(d))} groups={p.groups} names={p.names} selected={p.columns} canAdd={p.rows.length+p.columns.length<8} onChange={p.onColumns}/><div><label>Добавить фильтр<select aria-label="Filter dimension" value={p.filterDim} onChange={e=>p.onFilterDim(e.target.value)}>{dimensionOptions(p.dimensions,p.groups,p.names)}</select></label><div className="button-row"><input aria-label="Значения фильтра" placeholder="Несколько значений через ;" value={p.filterValue} onChange={e=>p.onFilterValue(e.target.value)}/><button className="secondary" title="Добавить фильтр" onClick={addFilter}><Filter size={15}/></button></div></div></div>
     <p className="hint">Общие атрибуты заявки доступны при выборе любого участвовавшего продукта. Продуктовые атрибуты сохраняют собственную привязку. Для матрицы переходов выберите один PATH. Порядок измерений можно менять стрелками. В строках и колонках вместе — до 8 измерений; чтобы добавить новое при достижении лимита, удалите одно из выбранных.</p>
-   </details>
-   <div className="filter-chips report-filter-chips">{Object.entries(p.filters).map(([k,v])=><span key={k} title={v.map(String).join('; ')}><b>{label(k,p.names)}</b><span>{v.length>2?`${v.slice(0,2).join(', ')} и ещё ${v.length-2}`:v.map(shown).join(', ')}</span><button title={'Удалить фильтр '+k} onClick={()=>{const f={...p.filters};delete f[k];p.onFilters(f)}}><X size={12}/></button></span>)}</div>
-   {pending&&<div className="report-pending">Настройки изменены. Нажмите «Перестроить», чтобы применить их к таблице.</div>}
+   </details>}
+   {!treeMode&&<div className="filter-chips report-filter-chips">{Object.entries(p.filters).map(([k,v])=><span key={k} title={v.map(String).join('; ')}><b>{label(k,p.names)}</b><span>{v.length>2?`${v.slice(0,2).join(', ')} и ещё ${v.length-2}`:v.map(shown).join(', ')}</span><button title={'Удалить фильтр '+k} onClick={()=>{const f={...p.filters};delete f[k];p.onFilters(f)}}><X size={12}/></button></span>)}</div>}
+   {pending&&!treeMode&&<div className="report-pending">Настройки изменены. Нажмите «Перестроить», чтобы применить их к таблице.</div>}
   </section>
-  {p.data?<section className="panel report-result"><div className="report-result-heading"><div><h2>Сводный отчёт по прогону</h2><p>Значения — уникальные APP_ID в каждой ячейке. Нажмите число для перехода к заявкам.</p></div><div className="report-selection"><button disabled={!p.data.grand_total?.count} onClick={()=>p.data?.grand_total&&p.onCell(p.data.grand_total)}>{number(p.data.grand_total?.count||0)}<ArrowDownRight size={14}/></button><small>заявок в текущей выборке</small></div></div>
+  {treeMode?<AttributeTree key={p.runId} runId={p.runId} refresh={treeRefresh} onCell={p.onCell}/>:p.data?<section className="panel report-result"><div className="report-result-heading"><div><h2>Сводный отчёт по прогону</h2><p>Значения — уникальные APP_ID в каждой ячейке. Нажмите число для перехода к заявкам.</p></div><div className="report-selection"><button disabled={!p.data.grand_total?.count} onClick={()=>p.data?.grand_total&&p.onCell(p.data.grand_total)}>{number(p.data.grand_total?.count||0)}<ArrowDownRight size={14}/></button><small>заявок в текущей выборке</small></div></div>
    <div className="report-legend"><span><i className="legend-stable"/> Без изменений · DIFF_FLAG = 0</span><span><i className="legend-changed"/> Есть изменения · DIFF_FLAG = 1</span><small>Различия считаются по исходным значениям, а не по бакету</small></div>
    {p.data.collapse_unchanged&&<p className="compact-strategy-note">«Без изменений» объединяет оба среза без повторного счёта. AFTER — стало, BEFORE — было. Общий итог объединяет уникальные заявки; он может быть меньше суммы колонок. Строки продуктов — заявки хотя бы с одним таким продуктовым результатом, не число попыток.</p>}
    <ReportTable data={p.data} names={p.names} onSelect={p.onCell}/>

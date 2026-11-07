@@ -81,7 +81,7 @@ def dataset_listing(owner,limit=100,offset=0):
             SELECT payload,created,id,row_number() OVER (
                 PARTITION BY coalesce(nullif(json_extract(payload,'$.checksum'),''),id)
                 ORDER BY created DESC,id DESC) AS position
-            FROM datasets WHERE owner_id=?)
+            FROM datasets WHERE owner_id=? AND status<>'DELETED')
             SELECT payload FROM ranked WHERE position=1
             ORDER BY created DESC,id DESC LIMIT ? OFFSET ?''',(owner,limit,offset))
         return [json.loads(r[0]) for r in rows]
@@ -92,7 +92,7 @@ def register_dataset(owner,payload,id):
     with db() as c:
         c.execute('BEGIN IMMEDIATE')
         previous = c.execute('''SELECT payload FROM datasets
-            WHERE owner_id=? AND json_extract(payload,'$.checksum')=?
+            WHERE owner_id=? AND status<>'DELETED' AND json_extract(payload,'$.checksum')=?
             ORDER BY created DESC,id DESC LIMIT 1''',(owner,payload['checksum'])).fetchone()
         if previous:
             return json.loads(previous[0])
@@ -101,6 +101,27 @@ def register_dataset(owner,payload,id):
         c.execute('INSERT INTO datasets VALUES(?,?,?,?,?)',
                   (id,owner,'VALIDATED',json.dumps(dataset,ensure_ascii=False),created))
         return dataset
+
+
+def delete_dataset(owner,id):
+    """Hide a content group, retaining snapshots used by historical/queued runs."""
+    with db() as c:
+        c.execute('BEGIN IMMEDIATE')
+        found = c.execute('SELECT payload FROM datasets WHERE id=? AND owner_id=?',(id,owner)).fetchone()
+        if not found:
+            raise KeyError(id)
+        dataset = json.loads(found[0])
+        if dataset['status']=='DELETED':
+            return dict(deleted=True,hidden_snapshots=0)
+        checksum = dataset.get('checksum')
+        if checksum:
+            rows = c.execute("SELECT id,payload FROM datasets WHERE owner_id=? AND status<>'DELETED' AND json_extract(payload,'$.checksum')=?",(owner,checksum)).fetchall()
+        else:
+            rows = c.execute("SELECT id,payload FROM datasets WHERE owner_id=? AND id=? AND status<>'DELETED'",(owner,id)).fetchall()
+        for row in rows:
+            payload = {**json.loads(row['payload']),'status':'DELETED','deleted_at':now()}
+            c.execute("UPDATE datasets SET status='DELETED',payload=? WHERE id=? AND owner_id=?",(json.dumps(payload,ensure_ascii=False),row['id'],owner))
+        return dict(deleted=True,hidden_snapshots=len(rows))
 
 
 def update(table,id,**fields):
@@ -123,11 +144,52 @@ def event(run_id,stage,message,processed=0,total=0,snapshot_id=None,code_hash=No
 def claim():
     with db() as c:
         c.execute('BEGIN IMMEDIATE')
-        for table in ['runs','check_executions']:
-            row = c.execute(f"SELECT id,payload FROM {table} WHERE status='QUEUED' ORDER BY created LIMIT 1").fetchone()
+        candidates = [(r['created'],table,r) for table in ['runs','check_executions']
+            for r in c.execute(f"SELECT id,payload,created FROM {table} WHERE status='QUEUED' ORDER BY created LIMIT 100")]
+        for _,table,row in sorted(candidates,key=lambda item:item[0]):
+            payload = json.loads(row['payload'])
+            if table=='check_executions':
+                # Two rechecks must never publish against the same run at once.
+                active = c.execute("SELECT 1 FROM check_executions WHERE status NOT IN ('QUEUED','READY','FAILED') AND json_extract(payload,'$.run_id')=? LIMIT 1",(payload['run_id'],)).fetchone()
+                if active:
+                    continue
             if row:
                 payload = json.loads(row['payload'])
-                payload.update(status='NORMALIZING' if table=='runs' else 'CHECKS',worker_id=os.getpid(),heartbeat=now())
+                payload.update(status='READING' if table=='runs' else 'CHECKS',worker_id=os.getpid(),heartbeat=now())
                 c.execute(f'UPDATE {table} SET status=?,payload=? WHERE id=?',(payload['status'],json.dumps(payload),row['id']))
                 return table,row['id']
     return None
+
+
+def create_user(name,password):
+    if not isinstance(name,str) or not name.strip() or len(name)>64:
+        raise ValueError('Имя пользователя должно содержать от 1 до 64 символов')
+    if len(password)<8:
+        raise ValueError('Пароль должен содержать минимум 8 символов')
+    salt = secrets.token_hex(16)
+    with db() as c:
+        c.execute('BEGIN IMMEDIATE')
+        if c.execute('SELECT 1 FROM users WHERE name=?',(name.strip(),)).fetchone():
+            raise ValueError('Такой пользователь уже существует')
+        id = uid()
+        c.execute('INSERT INTO users VALUES(?,?,?,?)',(id,name.strip(),salt,password_hash(password,salt)))
+    return id
+
+
+def resume_run(id, owner, stop_after):
+    from backend.app.core.pipeline import STAGES, stop_stage
+    stop_stage(stop_after)
+    with db() as c:
+        c.execute('BEGIN IMMEDIATE')
+        row = c.execute('SELECT payload FROM runs WHERE id=? AND owner_id=?', (id, owner)).fetchone()
+        if row is None:
+            raise KeyError(id)
+        run = json.loads(row[0])
+        if run['status'] not in ['PAUSED', 'FAILED']:
+            raise ValueError('Продолжить можно только остановленный или неуспешный прогон')
+        complete = run.get('completed_stage')
+        if complete and STAGES.index(stop_after) <= STAGES.index(complete):
+            raise ValueError('Выберите этап после последнего сохранённого')
+        run.update(status='QUEUED', stop_after=stop_after, error=None, traceback=None, heartbeat=now())
+        c.execute("UPDATE runs SET status='QUEUED',payload=? WHERE id=?", (json.dumps(run, ensure_ascii=False), id))
+        return run

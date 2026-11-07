@@ -1,6 +1,6 @@
 import type {Envelope} from './types';
-export async function api<T=any>(path:string,body?:unknown):Promise<T> {
-  const response=await fetch('/api'+path,{credentials:'same-origin',headers:body instanceof FormData?{}:body===undefined?{}:{'Content-Type':'application/json'},method:body===undefined?'GET':'POST',body:body instanceof FormData?body:body===undefined?undefined:JSON.stringify(body)});
+export async function api<T=any>(path:string,body?:unknown,method?:'GET'|'POST'|'DELETE'):Promise<T> {
+  const response=await fetch('/api'+path,{credentials:'same-origin',headers:body instanceof FormData?{}:body===undefined?{}:{'Content-Type':'application/json'},method:method||(body===undefined?'GET':'POST'),body:body instanceof FormData?body:body===undefined?undefined:JSON.stringify(body)});
   const result=await response.json() as Envelope<T>;
   if(!response.ok) throw new Error(result.error?.message||`Ошибка ${response.status}`);
   return result.data;

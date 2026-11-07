@@ -38,20 +38,13 @@ test('full dataset to report through UI, pivot drilldown, new Python check, two 
  await expect(page.locator('.stat-grid')).toBeVisible();
  await expect(page.locator('[data-chart="decisions"]')).toBeVisible();
  await page.screenshot({path:'../runtime/overview.png',fullPage:true});
- await page.getByRole('button',{name:'Сводная',exact:true}).click();
- await page.getByRole('combobox',{name:'Представление сводной'}).selectOption('custom');
- await page.getByRole('button',{name:'Очистить строки',exact:true}).click();
- await page.getByRole('combobox',{name:'Строки сводной',exact:true}).selectOption('PATH');
- await page.getByRole('combobox',{name:'Строки сводной',exact:true}).selectOption('VALUE_ADJUSTED');
- await expect(page.locator('.pivot-table')).toBeVisible();
- for(const [dimension,value] of [['PATH','characteristics.score_okb'],['DIFF_FLAG','1']]){
-  await page.getByRole('combobox',{name:'Filter dimension',exact:true}).selectOption(dimension);
-  await page.getByRole('textbox',{name:'Значения фильтра',exact:true}).fill(value);
-  await page.getByRole('button',{name:'Добавить фильтр',exact:true}).click();
- }
- await page.getByRole('button',{name:'Перестроить',exact:true}).click();
- await expect(page.locator('.report-selection button')).toContainText('167');
- const cell=page.locator('.pivot-table tbody button').first();const count=Number((await cell.innerText()).replace(/\D/g,''));await cell.click();
+ await page.getByRole('button',{name:'Сводная таблица',exact:true}).click();
+ await expect(page.locator('.attribute-tree')).toBeVisible();
+ await page.getByRole('combobox',{name:'Дерево: срез'}).selectOption('BEFORE');
+ await page.getByRole('combobox',{name:'Дерево: DIFF_FLAG'}).selectOption('1');
+ await page.getByRole('button',{name:'Раскрыть characteristics',exact:true}).click();
+ await expect(page.locator('.attribute-tree tr[data-path="characteristics.score_okb"]')).toBeVisible();
+ const cell=page.locator('.attribute-tree tr[data-path="characteristics.score_okb"] .tree-number button').first();const count=Number((await cell.innerText()).replace(/\D/g,''));await cell.click();
  await expect(page.locator('.drawer h2')).toContainText(count.toLocaleString('ru-RU'));
  const appButton=page.locator('.app-list button').first();const appId=(await appButton.innerText()).trim();await appButton.click();
  await expect(page.locator('.detail-modal h2')).toContainText(appId);
@@ -59,11 +52,8 @@ test('full dataset to report through UI, pivot drilldown, new Python check, two 
  await expect(page.locator('.highlight-row')).toContainText('characteristics.score_okb');
  await page.screenshot({path:'../runtime/drilldown.png',fullPage:false});
  await page.getByRole('button',{name:'Закрыть заявку',exact:true}).click();await page.getByRole('button',{name:'Закрыть заявки',exact:true}).click();
- await page.getByRole('button',{name:'Убрать PATH',exact:true}).click();
- await page.getByRole('combobox',{name:'Строки сводной',exact:true}).selectOption('product_id');
- await page.getByRole('button',{name:'Перестроить',exact:true}).click();await expect(page.locator('.pivot-table th').filter({hasText:'product_id'})).toHaveCount(1);
  await page.getByRole('button',{name:'Автопроверки',exact:true}).click();
- await expect(page.locator('.checks-table tbody tr')).toHaveCount(51);
+ const checkRows=(await (await page.request.get('/api/runs/'+runId+'/checks')).json()).data.rows;await expect(page.locator('.checks-table tbody tr')).toHaveCount(checkRows.length);
  await page.getByRole('button',{name:'Написать свою проверку',exact:true}).click();
  const checkName=`Моя проверка ${Date.now()}.py`;await page.getByLabel('Название',{exact:true}).fill(checkName);
  const editor=page.getByRole('textbox',{name:'Редактор Python',exact:true});await expect(editor).toContainText('def run');
@@ -76,7 +66,7 @@ test('full dataset to report through UI, pivot drilldown, new Python check, two 
  await page.getByRole('button',{name:'Применить набор из конфигурации',exact:true}).click();
  await expect(page.getByRole('heading',{name:'Журнал',exact:true})).toBeVisible();
  await page.getByRole('button',{name:'Автопроверки',exact:true}).click();
- await expect(page.locator('.checks-table')).toContainText('Наличие изменений в ответах',{timeout:30000});
+ await expect(page.locator('.checks-table')).toContainText('Доля изменений в пределах порога',{timeout:30000});
  await page.getByRole('button',{name:'Обзор изменений',exact:true}).click();
  await expect(page.locator('.stat-grid')).toContainText('-8.042 п.п.');
  await expect(page.locator('.decision-box')).toHaveCount(0);
@@ -88,7 +78,7 @@ test('full dataset to report through UI, pivot drilldown, new Python check, two 
  await reportPage.getByRole('link',{name:'Открыть интерактивную сводную',exact:true}).click();
  await reportPage.getByLabel('Пользователь',{exact:true}).fill('alice');await reportPage.getByLabel('Пароль',{exact:true}).fill('demo');
  await reportPage.getByRole('button',{name:'Войти в рабочую область'}).click();
- await expect(reportPage.getByRole('heading',{name:'Сводная',exact:true})).toBeVisible();
+ await expect(reportPage.getByRole('heading',{name:'Сводная таблица',exact:true})).toBeVisible();
  expect(new URL(reportPage.url()).searchParams.get('run')).toBe(runId);
  await reportContext.close();
  await page.reload();await expect(page.locator('.stat-grid')).toBeVisible();

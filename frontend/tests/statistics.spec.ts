@@ -24,7 +24,8 @@ test('statistics use names, readable percentages and compact p-values',async({pa
  await expect(approval.locator('.stat-before-after')).toContainText(Number((metric.baseline.before*100).toFixed(4))+'%');
  await expect(approval.locator('.stat-before-after')).not.toContainText('п.п.');
  await expect(page.locator('.stat-grid .stat').nth(2).locator('h3')).toHaveText('Вероятность одобрения');
- await expect(page.locator('.grid-two .stat')).toHaveCount(1);
+ await expect(page.locator('.statistics-page')).not.toContainText('Анализ сопоставимости');
+ await expect(page.locator('.statistics-page')).not.toContainText('Внешний скор не менялся');
  const first=page.locator('.stats-family-table').first().locator('tbody tr');
  await expect(first.locator('td').first()).toContainText('Продукт для проверки');
  await expect(first.locator('td').first()).not.toContainText('123');

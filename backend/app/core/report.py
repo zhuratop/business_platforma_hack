@@ -132,10 +132,10 @@ def pivot_table(con):
     <p class="note">Без изменений: заявка учтена один раз на оба среза. Общий итог — объединение APP_ID, не сумма колонок или строк. У заявки может быть несколько продуктов и значений. Изменения учтены по исходным значениям, даже внутри бакета. Все строки включены без пагинации. Лимиты и риск дефолта в этих данных недоступны.</p>'''
 
 
-def render(run, summary, stats, checks, con=None):
+def render(run, summary, stats, checks, con=None, public_base_url=None):
     if con is None:
         with duckdb.connect(run['mart_path'], read_only=True) as connection:
-            return render(run, summary, stats, checks, connection)
+            return render(run, summary, stats, checks, connection, public_base_url)
     stats = display_stats(con, stats)
     confidence = number((1 - stats.get('alpha', .05)) * 100)
     cards = ''.join(stat_card(title, stats[key], confidence, percentage) for title, key, percentage in [('Одобрение заявок', 'app_approval_rate', True), ('Одобрено продуктов на заявку', 'approved_products', False), ('Вероятность одобрения', 'target_score', True)])
@@ -143,7 +143,7 @@ def render(run, summary, stats, checks, con=None):
     families = family_table(stats.get('families', {}).get('products', []), confidence)
     titles = {'external_unchanged': 'Внешний скор не менялся'}
     strata = ''.join(stat_card(titles.get(key, key), value, confidence) for key, value in stats.get('strata', {}).items())
-    back = esc(meta.PUBLIC_BASE_URL + '/?run=' + run['id'] + '&tab=pivot')
+    back = esc((public_base_url or meta.PUBLIC_BASE_URL).rstrip('/') + '/?run=' + run['id'] + '&tab=pivot')
     css = Path(__file__).with_name('report.css').read_text(encoding='utf-8')
     return f'''<!doctype html><html lang="ru"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>СПР · отчёт по прогону {esc(run['id'])}</title><style>{css}</style></head><body><main>
     <header><div class="eyebrow">Система анализа изменений СПР</div><h1>BEFORE (MASTER) → AFTER (BETA)</h1><p>Статистика парных наблюдений и ключевые атрибуты стратегии</p><div>Прогон {esc(run['id'])} · {esc(run['created'])} · {number(summary.get('total_apps'))} пар заявок</div><nav><a href="#statistics">Статистика</a><a href="#families">Продукты (компании)</a><a href="#strategy">Ключевые атрибуты</a><a href="{back}">Открыть интерактивную сводную</a></nav></header>
